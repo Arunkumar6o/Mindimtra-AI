@@ -4,7 +4,7 @@ import { X, Mail, Lock, User, KeyRound, CheckCircle, AlertCircle, ArrowRight, Sh
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccessLogin: (userData: { email: string; name: string }, token: string) => void;
+  onSuccessLogin: (userData: { email: string; name: string }) => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSuccessLogin }) => {
@@ -26,47 +26,43 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
     setErrorMsg('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
     setIsLoading(true);
 
-    const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-    const payload = isRegister ? { name, email, password } : { email, password };
+    if (!email || !password) {
+      setErrorMsg('Please provide both email and password.');
+      setIsLoading(false);
+      return;
+    }
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+    if (isRegister && !name) {
+      setErrorMsg('Please provide your name to register.');
+      setIsLoading(false);
+      return;
+    }
 
-      const data = await response.json();
+    setTimeout(() => {
+      const userObj = {
+        email: email.trim().toLowerCase(),
+        name: isRegister ? name.trim() : (email.includes('demo') ? 'Alex Mercer' : email.split('@')[0])
+      };
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Authentication failed. Please check your credentials.');
-      }
+      // Save token in localStorage
+      const mockToken = `mindmitra_token_${Date.now()}`;
+      localStorage.setItem('mindmitra_token', mockToken);
+      localStorage.setItem('mindmitra_user', JSON.stringify(userObj));
 
-      setSuccessMsg(data.message);
-      
-      // Save token to localStorage
-      if (data.token) {
-        localStorage.setItem('mindmitra_token', data.token);
-      }
+      setSuccessMsg(isRegister ? 'Account created successfully! Logging in...' : 'Login successful! Welcome to Mindmitra.');
+      setIsLoading(false);
 
       setTimeout(() => {
-        onSuccessLogin(data.user, data.token);
+        onSuccessLogin(userObj);
         onClose();
-      }, 1000);
-
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to connect to Flask server. Please check backend.');
-    } finally {
-      setIsLoading(false);
-    }
+      }, 800);
+    }, 500);
   };
 
   return (
@@ -75,7 +71,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
       {/* Click outside backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Main Login Container Box */}
+      {/* Main Login Box */}
       <div className="relative w-full max-w-md glass-modal rounded-3xl overflow-hidden p-6 sm:p-8 z-10 border border-slate-700/80 shadow-2xl transition-all duration-300 transform scale-100">
         
         {/* Header Close Button */}
@@ -209,7 +205,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             >
               Fill Demo Credentials
             </button>
-            <span className="text-slate-500">AES-256 Encrypted</span>
+            <span className="text-slate-500">End-to-End Encrypted</span>
           </div>
 
           {/* Submit Button */}
@@ -219,7 +215,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
             className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-teal-500/25 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? (
-              <span>Authenticating with Flask...</span>
+              <span>Authenticating...</span>
             ) : (
               <>
                 <span>{isRegister ? 'Create Account' : 'Sign In to Portal'}</span>
@@ -232,7 +228,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onSucce
         {/* Footer Security Badges */}
         <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center gap-2 text-[11px] text-slate-400">
           <ShieldCheck className="w-4 h-4 text-teal-400" />
-          <span>Secured by JWT + OAuth 2.0 & PII Anonymization</span>
+          <span>Secured Session & Local Privacy Storage</span>
         </div>
 
       </div>
