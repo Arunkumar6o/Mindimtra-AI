@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Navbar, type DashboardTab } from './components/Navbar';
+import { Navbar } from './components/Navbar';
 import { DashboardOverview } from './components/DashboardOverview';
 import { LoginPage } from './components/LoginPage';
 import { LandingPage } from './components/LandingPage';
 import { CheckCircle2, Cpu, Sparkles, Heart, Shield } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [activeOption, setActiveOption] = useState<string>('option1');
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
   const [showLoginToast, setShowLoginToast] = useState<boolean>(false);
 
@@ -24,6 +24,7 @@ export function App() {
 
   const handleSuccessLogin = (userData: { email: string; name: string }) => {
     setUser(userData);
+    setActiveOption('option1');
     setShowLoginToast(true);
     setTimeout(() => {
       setShowLoginToast(false);
@@ -40,10 +41,10 @@ export function App() {
   return (
     <div className="min-h-screen flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950">
       
-      {/* Navigation Bar */}
+      {/* Navigation Bar with Option 1, Option 2, Option 3, Option 4 */}
       <Navbar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        activeOption={activeOption}
+        onSelectOption={setActiveOption}
         user={user}
         onLogout={handleLogout}
       />
@@ -64,25 +65,23 @@ export function App() {
 
       {/* Main Dashboard / Landing Pages Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-        {activeTab === 'overview' && (
+        {activeOption !== 'login' ? (
           user ? (
             <DashboardOverview
               user={user}
-              onSelectTab={setActiveTab}
+              onSelectTab={(tab) => setActiveOption(tab === 'login' ? 'login' : 'option1')}
             />
           ) : (
             <LandingPage
-              onOpenLogin={() => setActiveTab('login')}
+              onOpenLogin={() => setActiveOption('login')}
             />
           )
-        )}
-
-        {activeTab === 'login' && (
+        ) : (
           <LoginPage
             user={user}
             onSuccessLogin={handleSuccessLogin}
             onLogout={handleLogout}
-            onNavigateHome={() => setActiveTab('overview')}
+            onNavigateHome={() => setActiveOption('option1')}
           />
         )}
       </main>

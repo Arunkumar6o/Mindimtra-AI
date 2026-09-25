@@ -5,7 +5,6 @@ import {
   Sparkles, 
   CheckCircle2, 
   Activity, 
-  SunMedium, 
   Calendar,
   Flame,
   BarChart3,
@@ -53,11 +52,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onSe
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/80 border border-teal-500/30 text-teal-300 text-xs font-semibold">
-              <SunMedium className="w-3.5 h-3.5 text-teal-400" />
-              <span>Mindmitra Interactive Sanctuary</span>
-            </div>
-            
             <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
               Welcome back, <span className="bg-gradient-to-r from-teal-300 via-sky-200 to-indigo-300 bg-clip-text text-transparent">
                 {user ? user.name : 'Mindmitra Explorer'}

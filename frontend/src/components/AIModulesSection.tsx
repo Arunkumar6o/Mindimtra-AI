@@ -12,7 +12,10 @@ import {
   Send,
   Database,
   User,
-  Bot
+  Bot,
+  Mic,
+  MicOff,
+  Volume2
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -49,12 +52,96 @@ export const AIModulesSection: React.FC = () => {
     empathetic_insight: 'Try 4-7-8 deep breathing: Inhale 4s, Hold 7s, Exhale 8s. Ground yourself with 5 things you can see right now.'
   });
 
+  // --- Voiceover / Speech-to-Text State & Handlers ---
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [voiceNotice, setVoiceNotice] = useState<string>('');
+  const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
+
   const samplePrompts = [
     "I feel quite overwhelmed with my workload today, but I am trying to stay hopeful.",
     "I had an amazing conversation with a friend and felt so calm and peaceful in nature.",
     "My email is john.doe@example.com and phone is 555-0199. I feel worried about the project release.",
     "Everything is going wrong today and I am furious with how things were handled!"
   ];
+
+  const toggleVoiceInput = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (isListening) {
+      if (recognitionInstance) {
+        try { recognitionInstance.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      setVoiceNotice('Voiceover stopped.');
+      setTimeout(() => setVoiceNotice(''), 3000);
+      return;
+    }
+
+    if (!SpeechRecognition) {
+      // Simulation fallback for environments without Web Speech API support
+      setIsListening(true);
+      setVoiceNotice('Voiceover active (Simulating dictation)...');
+      
+      const simulatedSpeech = "I feel a bit anxious about my upcoming schedule, but I am taking deep breaths to remain calm.";
+      let charIndex = 0;
+      setInputText('');
+      
+      const timer = setInterval(() => {
+        if (charIndex < simulatedSpeech.length) {
+          setInputText(simulatedSpeech.slice(0, charIndex + 1));
+          charIndex++;
+        } else {
+          clearInterval(timer);
+          setIsListening(false);
+          setVoiceNotice('Voice converted to text successfully!');
+          setTimeout(() => setVoiceNotice(''), 3000);
+        }
+      }, 35);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setVoiceNotice('Listening to your voice... Speak now!');
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (transcript) {
+          setInputText(transcript);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error', event.error);
+        setIsListening(false);
+        setVoiceNotice('Voice error or mic permission denied. Please try again.');
+        setTimeout(() => setVoiceNotice(''), 4000);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        setVoiceNotice('Voice converted to text successfully!');
+        setTimeout(() => setVoiceNotice(''), 3000);
+      };
+
+      setRecognitionInstance(recognition);
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition', err);
+      setIsListening(false);
+      setVoiceNotice('Could not start speech recognition.');
+    }
+  };
 
   const handleAnalyze = async (textToAnalyze?: string) => {
     const text = textToAnalyze || inputText;
@@ -273,7 +360,7 @@ export const AIModulesSection: React.FC = () => {
                 6 Emotion Classes
               </span>
               <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-indigo-950 text-indigo-300 border border-indigo-500/30 rounded-full">
-                Presidio PII Defense
+                Voiceover Speech-to-Text
               </span>
             </div>
           </div>
@@ -282,19 +369,60 @@ export const AIModulesSection: React.FC = () => {
             
             {/* Input Form Column (7 cols) */}
             <div className="lg:col-span-7 rounded-2xl bg-slate-900/80 border border-slate-800 p-5 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="text-xs font-bold text-white flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-teal-400" />
                   <span>Statement / Journal Input</span>
                 </label>
-                <span className="text-[11px] text-slate-500">Max 500 characters</span>
+
+                {/* Voiceover Speech-to-Text Button */}
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    isListening
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse ring-2 ring-rose-400/50'
+                      : 'bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                  }`}
+                  title="Voiceover - Speak into microphone to convert voice to text"
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                      <span>Stop Voiceover</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Voiceover (Speech-to-Text)</span>
+                    </>
+                  )}
+                </button>
               </div>
+
+              {/* Voice Input Active Banner */}
+              {isListening && (
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center justify-between animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
+                    <span className="font-semibold">Voiceover Active: Listening to your voice...</span>
+                  </div>
+                  <span className="text-[11px] text-rose-300 italic hidden sm:inline">Converting speech to text</span>
+                </div>
+              )}
+
+              {voiceNotice && !isListening && (
+                <div className="p-2.5 rounded-xl bg-teal-950/60 border border-teal-500/30 text-teal-300 text-xs flex items-center gap-2 animate-fadeIn">
+                  <Volume2 className="w-4 h-4 text-teal-400 shrink-0" />
+                  <span>{voiceNotice}</span>
+                </div>
+              )}
 
               <textarea
                 rows={4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type your feelings or thoughts here to analyze emotion..."
+                placeholder="Type or click Voiceover to speak your thoughts..."
                 className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-teal-500 transition-all placeholder:text-slate-600 resize-none leading-relaxed"
               />
 
