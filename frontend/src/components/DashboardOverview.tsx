@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
 import { 
   Smile, 
-  Zap, 
   ShieldCheck, 
   Sparkles, 
-  BrainCircuit, 
-  MessageSquareHeart, 
   CheckCircle2, 
   Activity, 
   SunMedium, 
   Calendar,
   Flame,
-  BarChart3
+  BarChart3,
+  BrainCircuit
 } from 'lucide-react';
 import { DAILY_AFFIRMATIONS } from '../data/quotes';
+import { AIModulesSection } from './AIModulesSection';
 
 interface DashboardOverviewProps {
   user: { email: string; name: string } | null;
-  onOpenLogin: () => void;
-  onSelectTab: (tab: 'overview' | 'roberta' | 'gemini') => void;
+  onSelectTab: (tab: 'overview' | 'login') => void;
 }
 
-export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOpenLogin, onSelectTab }) => {
+export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onSelectTab }) => {
   const [selectedMood, setSelectedMood] = useState<string>('Peaceful');
   const [checkInNote, setCheckInNote] = useState<string>('');
   const [checkInSubmitted, setCheckInSubmitted] = useState<boolean>(false);
@@ -48,7 +46,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOp
   return (
     <div className="space-y-8 animate-fadeIn">
       
-      {/* Welcome Banner */}
+      {/* Welcome Greeting Banner */}
       <div className="relative overflow-hidden rounded-3xl glass-panel border border-teal-500/20 p-6 sm:p-8">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-10 -top-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -74,7 +72,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOp
           {!user && (
             <div className="shrink-0">
               <button
-                onClick={onOpenLogin}
+                onClick={() => onSelectTab('login')}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-medium text-xs shadow-lg shadow-teal-500/20 transition-all cursor-pointer"
               >
                 Sign In / Register
@@ -83,6 +81,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOp
           )}
         </div>
       </div>
+
+      {/* Combined AI Modules Section (RoBERTa Emotion Classifier & Gemini AI Companion) */}
+      <AIModulesSection />
 
       {/* Top Quick Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -283,14 +284,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOp
                 </div>
               </div>
             </div>
-
-            <button
-              onClick={() => onSelectTab('roberta')}
-              className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-teal-300 text-xs font-semibold border border-slate-800 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <BrainCircuit className="w-3.5 h-3.5" />
-              <span>Launch Emotion Classifier →</span>
-            </button>
           </div>
 
           {/* Daily Affirmations Widget */}
@@ -315,58 +308,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onOp
 
         </div>
 
-      </div>
-
-      {/* Module Navigation Cards */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Zap className="w-4 h-4 text-teal-400" />
-          <span>Explore Mindmitra Sanctuary Features</span>
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          
-          {/* Module 1: Emotion Classifier */}
-          <div 
-            onClick={() => onSelectTab('roberta')}
-            className="p-6 rounded-2xl glass-panel border border-slate-800/80 hover:border-teal-500/50 transition-all cursor-pointer group space-y-3"
-          >
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 group-hover:scale-110 transition-transform">
-              <BrainCircuit className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white group-hover:text-teal-300 transition-colors">
-              Emotion Classifier Engine
-            </h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Test real-time emotion classification for fine-grained sentiment analysis and key phrase entity detection.
-            </p>
-            <div className="pt-2 text-xs text-teal-400 font-semibold flex items-center gap-1">
-              <span>Open Module</span>
-              <span>→</span>
-            </div>
-          </div>
-
-          {/* Module 2: AI Companion */}
-          <div 
-            onClick={() => onSelectTab('gemini')}
-            className="p-6 rounded-2xl glass-panel border border-slate-800/80 hover:border-indigo-500/50 transition-all cursor-pointer group space-y-3"
-          >
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
-              <MessageSquareHeart className="w-5 h-5" />
-            </div>
-            <h4 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
-              Empathetic AI Companion
-            </h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Engage in safe, reflective dialogue designed to foster mindfulness, grounding, and self-compassion.
-            </p>
-            <div className="pt-2 text-xs text-indigo-400 font-semibold flex items-center gap-1">
-              <span>Open Module</span>
-              <span>→</span>
-            </div>
-          </div>
-
-        </div>
       </div>
 
     </div>

@@ -4,19 +4,16 @@ import {
   LogIn, 
   UserCheck, 
   LayoutDashboard, 
-  BrainCircuit, 
-  MessageSquareHeart, 
   Menu, 
   X,
   LogOut
 } from 'lucide-react';
 
-export type DashboardTab = 'overview' | 'roberta' | 'gemini';
+export type DashboardTab = 'overview' | 'login';
 
 interface NavbarProps {
   activeTab: DashboardTab;
   onSelectTab: (tab: DashboardTab) => void;
-  onOpenLogin: () => void;
   user: { email: string; name: string } | null;
   onLogout: () => void;
 }
@@ -24,16 +21,13 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onSelectTab,
-  onOpenLogin,
   user,
   onLogout
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems: { id: DashboardTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'roberta', label: 'Emotion Classifier', icon: BrainCircuit },
-    { id: 'gemini', label: 'AI Companion', icon: MessageSquareHeart }
+    { id: 'overview', label: 'Dashboard Sanctuary', icon: LayoutDashboard }
   ];
 
   return (
@@ -100,8 +94,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           ) : (
             <button
-              onClick={onOpenLogin}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-semibold text-xs shadow-md shadow-teal-500/20 transition-all cursor-pointer"
+              onClick={() => onSelectTab('login')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all cursor-pointer ${
+                activeTab === 'login'
+                  ? 'bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md shadow-teal-500/30 ring-2 ring-teal-400'
+                  : 'bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white shadow-md shadow-teal-500/20'
+              }`}
             >
               <LogIn className="w-4 h-4" />
               <span>Login / Register</span>

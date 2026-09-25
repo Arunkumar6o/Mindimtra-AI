@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Navbar, type DashboardTab } from './components/Navbar';
 import { DashboardOverview } from './components/DashboardOverview';
-import { RoBERTaEmotionClassifier } from './components/RoBERTaEmotionClassifier';
-import { GeminiAICompanion } from './components/GeminiAICompanion';
-import { LoginModal } from './components/LoginModal';
+import { LoginPage } from './components/LoginPage';
+import { LandingPage } from './components/LandingPage';
 import { CheckCircle2, Cpu, Sparkles, Heart, Shield } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [showLoginToast, setShowLoginToast] = useState<boolean>(false);
 
   useEffect(() => {
     // Restore logged in user session from localStorage if present
@@ -25,12 +24,17 @@ export function App() {
 
   const handleSuccessLogin = (userData: { email: string; name: string }) => {
     setUser(userData);
+    setShowLoginToast(true);
+    setTimeout(() => {
+      setShowLoginToast(false);
+    }, 2000);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('mindmitra_token');
     localStorage.removeItem('mindmitra_user');
     setUser(null);
+    setShowLoginToast(false);
   };
 
   return (
@@ -40,54 +44,48 @@ export function App() {
       <Navbar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onOpenLogin={() => setIsLoginModalOpen(true)}
         user={user}
         onLogout={handleLogout}
       />
 
-      {/* User Session Banner */}
-      {user && (
-        <div className="bg-slate-900/60 border-b border-slate-800/80 px-6 py-2">
-          <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-              <span className="text-slate-400">
-                Active Sanctuary Session: <strong className="text-slate-200">{user.name}</strong> ({user.email})
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-teal-300 font-medium bg-teal-950/60 px-3 py-0.5 rounded-full border border-teal-500/30">
-              <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-              <span>Session Authenticated</span>
-            </div>
+      {/* 2-Second Pop-up Session Message Toast after Login */}
+      {showLoginToast && user && (
+        <div className="fixed top-5 right-5 z-50 animate-fadeIn bg-slate-900/95 border border-teal-500/50 shadow-2xl shadow-teal-500/30 rounded-2xl px-5 py-3 flex items-center gap-3 backdrop-blur-md">
+          <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse shrink-0" />
+          <div className="text-xs text-slate-200">
+            Active Sanctuary Session: <strong className="text-teal-300">{user.name}</strong> ({user.email})
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-teal-300 font-medium bg-teal-950/80 px-2.5 py-0.5 rounded-full border border-teal-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
+            <span>Authenticated</span>
           </div>
         </div>
       )}
 
-      {/* Main Dashboard Pages Body */}
+      {/* Main Dashboard / Landing Pages Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
         {activeTab === 'overview' && (
-          <DashboardOverview
+          user ? (
+            <DashboardOverview
+              user={user}
+              onSelectTab={setActiveTab}
+            />
+          ) : (
+            <LandingPage
+              onOpenLogin={() => setActiveTab('login')}
+            />
+          )
+        )}
+
+        {activeTab === 'login' && (
+          <LoginPage
             user={user}
-            onOpenLogin={() => setIsLoginModalOpen(true)}
-            onSelectTab={setActiveTab}
+            onSuccessLogin={handleSuccessLogin}
+            onLogout={handleLogout}
+            onNavigateHome={() => setActiveTab('overview')}
           />
         )}
-
-        {activeTab === 'roberta' && (
-          <RoBERTaEmotionClassifier />
-        )}
-
-        {activeTab === 'gemini' && (
-          <GeminiAICompanion />
-        )}
       </main>
-
-      {/* Login & Registration Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onSuccessLogin={handleSuccessLogin}
-      />
 
       {/* Footer Section */}
       <footer className="glass-panel border-t border-slate-800/80 py-10 px-6 text-slate-400 text-xs mt-12">
