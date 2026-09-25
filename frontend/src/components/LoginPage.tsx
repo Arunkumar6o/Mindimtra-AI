@@ -11,8 +11,15 @@ import {
   LogOut, 
   UserCheck, 
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  Database
 } from 'lucide-react';
+import { 
+  registerUserInSupabase, 
+  loginUserWithSupabase, 
+  DEMO_USER,
+  isSupabaseConfigured
+} from '../lib/supabase';
 
 interface LoginPageProps {
   user: { email: string; name: string } | null;
@@ -37,56 +44,112 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleDemoFill = () => {
-    setEmail('demo@mindmitra.ai');
-    setPassword('Password123!');
-    setName('Alex Mercer');
+    setEmail(DEMO_USER.email);
+    setPassword(DEMO_USER.password);
+    setName(DEMO_USER.name);
     setErrorMsg('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
     setIsLoading(true);
 
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
       setErrorMsg('Please provide both email and password.');
       setIsLoading(false);
       return;
     }
 
-    if (isRegister && !name) {
+    if (isRegister && !name.trim()) {
       setErrorMsg('Please provide your name to register.');
       setIsLoading(false);
       return;
     }
 
-    setTimeout(() => {
-      const userObj = {
-        email: email.trim().toLowerCase(),
-        name: isRegister ? name.trim() : (email.includes('demo') ? 'Alex Mercer' : email.split('@')[0])
-      };
+    try {
+      if (isRegister) {
+        // REGISTER USER IN SUPABASE DATABASE
+        const { user: registeredUser, error } = await registerUserInSupabase(
+          name,
+          cleanEmail,
+          cleanPassword
+        );
 
-      // Save token & user session in localStorage
-      const mockToken = `mindmitra_token_${Date.now()}`;
-      localStorage.setItem('mindmitra_token', mockToken);
-      localStorage.setItem('mindmitra_user', JSON.stringify(userObj));
+        if (error || !registeredUser) {
+          setErrorMsg(error || 'Failed to register account in Supabase database.');
+          setIsLoading(false);
+          return;
+        }
 
-      setSuccessMsg(isRegister ? 'Account created successfully! Logging in...' : 'Login successful! Welcome to Mindmitra.');
+        const userObj = {
+          email: registeredUser.email,
+          name: registeredUser.name
+        };
+
+        // Save active session token
+        if (registeredUser.token) {
+          localStorage.setItem('mindmitra_token', registeredUser.token);
+        }
+        localStorage.setItem('mindmitra_user', JSON.stringify(userObj));
+
+        setSuccessMsg('Account created and saved in Supabase database! Logging in...');
+        setIsLoading(false);
+
+        setTimeout(() => {
+          onSuccessLogin(userObj);
+          onNavigateHome();
+        }, 800);
+      } else {
+        // LOGIN USER VIA DEMO CREDENTIALS OR SUPABASE
+        const { user: authUser, isDemo, error } = await loginUserWithSupabase(
+          cleanEmail,
+          cleanPassword
+        );
+
+        if (error || !authUser) {
+          setErrorMsg(error || 'Invalid credentials or login failed.');
+          setIsLoading(false);
+          return;
+        }
+
+        const userObj = {
+          email: authUser.email,
+          name: authUser.name
+        };
+
+        if (authUser.token) {
+          localStorage.setItem('mindmitra_token', authUser.token);
+        }
+        localStorage.setItem('mindmitra_user', JSON.stringify(userObj));
+
+        setSuccessMsg(
+          isDemo 
+            ? 'Demo login successful! (Local Demo Access)' 
+            : 'Authenticated successfully via Supabase Database!'
+        );
+        setIsLoading(false);
+
+        setTimeout(() => {
+          onSuccessLogin(userObj);
+          onNavigateHome();
+        }, 800);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Authentication error occurred.');
       setIsLoading(false);
-
-      setTimeout(() => {
-        onSuccessLogin(userObj);
-        onNavigateHome();
-      }, 800);
-    }, 500);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 animate-fadeIn space-y-6">
       
       {/* Top Header Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <button
           onClick={onNavigateHome}
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-[#2D6A4F] bg-white border border-slate-200 shadow-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
@@ -94,10 +157,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Dashboard</span>
         </button>
-        
-        <div className="flex items-center gap-1.5 text-xs text-[#2D6A4F] font-semibold bg-[#E8F5E9] px-3.5 py-1 rounded-full border border-[#d8e8dc]">
-          <ShieldCheck className="w-4 h-4 text-[#2D6A4F]" />
-          <span>AES-256 Encrypted Auth</span>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-[#2D6A4F] font-semibold bg-[#E8F5E9] px-3.5 py-1 rounded-full border border-[#d8e8dc]">
+            <Database className="w-3.5 h-3.5 text-[#2D6A4F]" />
+            <span>Supabase DB Auth {isSupabaseConfigured() ? 'Live' : 'Active'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-[#1565C0] font-semibold bg-[#E3F2FD] px-3.5 py-1 rounded-full border border-[#BBDEFB]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1565C0]" />
+            <span>AES-256 Encrypted</span>
+          </div>
         </div>
       </div>
 
@@ -144,22 +213,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <span className="text-[#2D6A4F]">Authentication Portal</span>
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Sign in to your private sanctuary workspace to access your mood tracker history, fine-grained sentiment analysis, and personalized AI companion session context.
+                Sign in or create an account stored securely in the <strong>Supabase Database</strong> to access your personal mood logs, fine-grained sentiment analysis, and saved companion history.
               </p>
             </div>
 
             <div className="space-y-3 pt-4 border-t border-slate-100 text-xs">
               <div className="flex items-center gap-2.5 text-slate-700 font-medium">
+                <Database className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                <span>Supabase Database User Registration</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-slate-700 font-medium">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Personalized Mood Check-in History</span>
+                <span>Single Demo Credential Available</span>
               </div>
               <div className="flex items-center gap-2.5 text-slate-700 font-medium">
-                <ShieldCheck className="w-4 h-4 text-[#2D6A4F] shrink-0" />
-                <span>Zero Third-Party Data Tracking</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-slate-700 font-medium">
-                <CheckCircle className="w-4 h-4 text-[#1976D2] shrink-0" />
-                <span>Empathetic AI Companion Context</span>
+                {/* <ShieldCheck className="w-4 h-4 text-[#1565C0] shrink-0" /> */}
+                {/* <span>Zero Local Registration Storage</span> */}
               </div>
             </div>
           </div>
@@ -202,7 +271,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             )}
 
             {successMsg && (
-              <div className="p-3 rounded-xl bg-[#E8F5E9] border border-[#d8e8dc] text-[#1B4332] text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-[#E8F5E9] border border-[#d8e8dc] text-[#1B4332] text-xs flex items-center gap-2 font-medium">
                 <CheckCircle className="w-4 h-4 shrink-0 text-[#2D6A4F]" />
                 <span>{successMsg}</span>
               </div>
@@ -270,11 +339,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   onClick={handleDemoFill}
-                  className="text-[#2D6A4F] hover:text-[#1B4332] underline font-bold cursor-pointer"
+                  className="text-[#2D6A4F] hover:text-[#1B4332] underline font-bold cursor-pointer flex items-center gap-1"
                 >
-                  Fill Demo Credentials
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Fill Demo Credentials </span>
                 </button>
-                <span className="text-slate-500">End-to-End Encrypted</span>
+                <span className="text-slate-500 flex items-center gap-1">
+                  {/* <Database className="w-3 h-3 text-[#2D6A4F]" /> */}
+                  {/* <span>Supabase Sync</span> */}
+                </span>
               </div>
 
               {/* Submit Button */}
@@ -284,10 +357,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 className="w-full py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs sm:text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
-                  <span>Authenticating...</span>
+                  <span>Communicating with Supabase...</span>
                 ) : (
                   <>
-                    <span>{isRegister ? 'Create Account' : 'Sign In to Sanctuary'}</span>
+                    <span>{isRegister ? 'Register Account to Supabase DB' : 'Sign In via Supabase / Demo'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -295,7 +368,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </form>
 
             <div className="pt-2 text-center text-[11px] text-slate-500">
-              By logging in, you agree to Mindmitra's privacy policy and local session storage terms.
+              Registration data is stored in the Supabase database table (`profiles` / Supabase Auth).
             </div>
 
           </div>

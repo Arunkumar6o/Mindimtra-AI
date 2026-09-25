@@ -34,13 +34,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       {/* Foreground Content */}
       <div className="relative z-10 max-w-xl space-y-4">
         
-        {/* Scenic Inset Quote (Visible on medium+ screens on right top) */}
-        <div className="hidden md:block absolute right-4 top-2 text-right">
-          <p className="font-serif italic text-sm font-light text-[#2D6A4F] tracking-wide max-w-[200px] leading-snug">
-            "A calmer mind leads to a brighter tomorrow"
-          </p>
-        </div>
-
         {/* Greeting Headline */}
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight flex items-center gap-2">

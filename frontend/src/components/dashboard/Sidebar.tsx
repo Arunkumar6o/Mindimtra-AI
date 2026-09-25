@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-[#1B4332] tracking-tight leading-none font-serif">
-              MindNest
+              MindMitra.AI
             </h1>
             <p className="text-[10px] text-[#40916C] font-medium mt-1 leading-tight">
               A Calmer You, A Brighter Tomorrow
