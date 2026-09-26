@@ -1,5 +1,6 @@
 import React from 'react';
 import { Wind, Edit3, Heart, Users, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuickActionsStripProps {
   onStartMeditation?: () => void;
@@ -14,10 +15,12 @@ export const QuickActionsStrip: React.FC<QuickActionsStripProps> = ({
   onCheckMood,
   onTalkCommunity
 }) => {
+  const { t } = useLanguage();
+
   const actions = [
     {
       id: 'meditation',
-      title: 'Start a Meditation',
+      title: t('start_meditation', 'Start a Meditation'),
       icon: Wind,
       bgColor: 'bg-[#E8F5E9] hover:bg-[#D8F3DC]',
       textColor: 'text-[#2D6A4F]',
@@ -27,7 +30,7 @@ export const QuickActionsStrip: React.FC<QuickActionsStripProps> = ({
     },
     {
       id: 'journal',
-      title: 'Write in Journal',
+      title: t('write_journal', 'Write in Journal'),
       icon: Edit3,
       bgColor: 'bg-[#F3E5F5] hover:bg-[#E1BEE7]/40',
       textColor: 'text-[#7B1FA2]',
@@ -37,7 +40,7 @@ export const QuickActionsStrip: React.FC<QuickActionsStripProps> = ({
     },
     {
       id: 'mood',
-      title: 'Check Mood',
+      title: t('check_mood', 'Check Mood'),
       icon: Heart,
       bgColor: 'bg-[#FFF3E0] hover:bg-[#FFE0B2]/50',
       textColor: 'text-[#E65100]',
@@ -47,7 +50,7 @@ export const QuickActionsStrip: React.FC<QuickActionsStripProps> = ({
     },
     {
       id: 'community',
-      title: 'Talk to Community',
+      title: t('talk_community', 'Talk to Community'),
       icon: Users,
       bgColor: 'bg-[#E3F2FD] hover:bg-[#BBDEFB]/50',
       textColor: 'text-[#1976D2]',
@@ -56,6 +59,7 @@ export const QuickActionsStrip: React.FC<QuickActionsStripProps> = ({
       onClick: onTalkCommunity
     }
   ];
+
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

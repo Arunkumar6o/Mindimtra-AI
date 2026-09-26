@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight, Leaf } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HeroBannerProps {
   userName?: string;
@@ -10,6 +11,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   userName = 'Priya',
   onOpenMoodCheckIn
 }) => {
+  const { t } = useLanguage();
+
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#e3efe4] via-[#edf5ee] to-[#faedd9] border border-[#d8e8dc] p-7 sm:p-9 shadow-sm transition-all">
       
@@ -37,12 +40,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         {/* Greeting Headline */}
         <div className="space-y-2">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1B4332] tracking-tight flex items-center gap-2">
-            <span>Good Morning, {userName}</span>
+            <span>{t('good_morning', 'Good Morning')}, {userName}</span>
             <Leaf className="w-6 h-6 text-[#40916C] animate-pulse shrink-0" />
           </h1>
 
           <p className="text-sm text-slate-700 font-medium leading-relaxed max-w-lg">
-            Your mental wellbeing matters. Take a deep breath — you're doing better than you think.
+            {t('wellbeing_matters', "Your mental wellbeing matters. Take a deep breath — you're doing better than you think.")}
           </p>
         </div>
 
@@ -52,7 +55,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             onClick={onOpenMoodCheckIn}
             className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-semibold text-xs sm:text-sm shadow-md shadow-emerald-950/20 hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
           >
-            <span>How are you feeling today?</span>
+            <span>{t('feeling_today', 'How are you feeling today?')}</span>
             <ArrowRight className="w-4 h-4 text-emerald-200" />
           </button>
         </div>
@@ -62,3 +65,4 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     </div>
   );
 };
+

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, X, RefreshCw } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const OneMinuteBreatherCard: React.FC = () => {
+  const { t } = useLanguage();
+
   const [showBreatherModal, setShowBreatherModal] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(60);
   const [isActive, setIsActive] = useState(false);
@@ -54,9 +57,9 @@ export const OneMinuteBreatherCard: React.FC = () => {
         </div>
 
         <div className="relative z-10 space-y-1">
-          <h3 className="text-sm font-extrabold text-[#1B4332]">Take a Moment</h3>
+          <h3 className="text-sm font-extrabold text-[#1B4332]">{t('breather_title', '1-Minute Breather')}</h3>
           <p className="text-xs text-slate-600 font-medium leading-relaxed max-w-[200px]">
-            Pause. Breathe. You're doing enough. 🌿
+            {t('breather_desc', "Take a minute to calm your mind with guided deep breathing")} 🌿
           </p>
         </div>
 
@@ -67,11 +70,12 @@ export const OneMinuteBreatherCard: React.FC = () => {
             className="w-full py-2.5 px-4 rounded-2xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
-            <span>Start a 1-Minute Breather</span>
+            <span>{t('start_breathing', 'Start Breathing')}</span>
           </button>
         </div>
 
       </div>
+
 
       {/* Interactive Breather Modal */}
       {showBreatherModal && (

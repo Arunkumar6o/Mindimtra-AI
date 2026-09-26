@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Quote } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const DailyAffirmation: React.FC = () => {
+  const { t } = useLanguage();
+
   const affirmations = [
     "You are enough, just as you are.",
     "Breathe in peace, breathe out tension.",
@@ -28,8 +31,9 @@ export const DailyAffirmation: React.FC = () => {
         <Quote className="w-6 h-6 text-[#2D6A4F] fill-[#2D6A4F]/20" />
 
         <h2 className="text-xs font-extrabold uppercase tracking-wider text-[#2D6A4F]">
-          Today's Affirmation
+          {t('daily_affirmation', "Daily Affirmation")}
         </h2>
+
 
         {/* Main Quote Text */}
         <p className="text-base sm:text-lg font-serif italic text-slate-800 leading-relaxed max-w-[220px]">

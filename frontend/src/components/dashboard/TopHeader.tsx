@@ -1,26 +1,39 @@
 import React, { useState } from 'react';
-import { Search, Bell, ChevronDown, User, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Search, Bell, ChevronDown, User, LogOut, Settings as SettingsIcon, Globe } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface TopHeaderProps {
   userName?: string;
   onLogout?: () => void;
   onOpenNotifications?: () => void;
   onSearch?: (query: string) => void;
+  onOpenLanguageDrawer?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
   userName = 'Priya',
   onLogout,
   onOpenNotifications,
-  onSearch
+  onSearch,
+  onOpenLanguageDrawer
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [hasUnreadNotification, setHasUnreadNotification] = useState(true);
 
+  const { selectedLanguageObj, openLanguageDrawer, t } = useLanguage();
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (onSearch) onSearch(e.target.value);
+  };
+
+  const handleOpenDrawer = () => {
+    if (onOpenLanguageDrawer) {
+      onOpenLanguageDrawer();
+    } else {
+      openLanguageDrawer();
+    }
   };
 
   return (
@@ -33,14 +46,29 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           type="text"
           value={searchQuery}
           onChange={handleSearchChange}
-          placeholder="Search for resources, activities, or support..."
+          placeholder={t('search_placeholder', 'Search for resources, activities, or support...')}
           className="w-full pl-11 pr-4 py-2.5 rounded-full bg-[#eaefea] border border-transparent text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#2D6A4F] focus:bg-white transition-all shadow-inner"
         />
       </div>
 
       {/* Right User Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         
+        {/* Regional Language Switcher Button */}
+        <button
+          onClick={handleOpenDrawer}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-50 hover:bg-[#E2F0D9] border border-[#2D6A4F]/30 text-[#2D6A4F] text-xs font-bold transition-all cursor-pointer shadow-xs hover:shadow-md transform hover:-translate-y-0.5"
+          title={t('select_language', 'Select Regional Language')}
+        >
+          <Globe className="w-4 h-4 text-[#2D6A4F] animate-pulse" />
+          <span className="hidden xs:inline-block">
+            {selectedLanguageObj.nativeName}
+          </span>
+          <span className="text-[10px] bg-[#2D6A4F] text-white px-1.5 py-0.5 rounded-md uppercase font-extrabold">
+            {selectedLanguageObj.scriptBadge}
+          </span>
+        </button>
+
         {/* Notification Bell */}
         <button
           onClick={() => {
@@ -67,10 +95,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
             </div>
             <div className="text-left hidden sm:block">
               <p className="text-xs font-bold text-slate-800 leading-none">
-                Hello, {userName}
+                {t('good_morning', 'Hello')}, {userName}
               </p>
               <p className="text-[10px] text-slate-500 leading-tight mt-0.5">
-                Take care today
+                {t('take_care', 'Take care today')}
               </p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -89,7 +117,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                 className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#2D6A4F] text-left cursor-pointer"
               >
                 <User className="w-3.5 h-3.5" />
-                <span>My Profile</span>
+                <span>{t('my_profile', 'My Profile')}</span>
               </button>
 
               <button
@@ -97,7 +125,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                 className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#2D6A4F] text-left cursor-pointer"
               >
                 <SettingsIcon className="w-3.5 h-3.5" />
-                <span>Preferences</span>
+                <span>{t('preferences', 'Preferences')}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  handleOpenDrawer();
+                }}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-[#2D6A4F] hover:bg-[#edf4ee] font-semibold text-left cursor-pointer"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>{t('regional_language', 'Regional Language')}</span>
               </button>
 
               <div className="my-1 border-t border-slate-100" />
@@ -111,7 +150,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 text-left cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
+                  <span>{t('log_out', 'Log Out')}</span>
                 </button>
               )}
             </div>
@@ -123,3 +162,4 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
     </header>
   );
 };
+

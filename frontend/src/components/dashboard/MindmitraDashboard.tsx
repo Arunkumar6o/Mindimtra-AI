@@ -12,7 +12,9 @@ import { OneMinuteBreatherCard } from './OneMinuteBreatherCard';
 import { RecommendedResources } from './RecommendedResources';
 import { RecentActivityTimeline } from './RecentActivityTimeline';
 import { AIModulesSection } from '../AIModulesSection';
+import { LanguageDrawer } from './LanguageDrawer';
 import { CheckCircle2, X } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface MindmitraDashboardProps {
   user: { email: string; name: string } | null;
@@ -27,6 +29,7 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
   const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab>('dashboard');
   const [activeToast, setActiveToast] = useState<string | null>(null);
 
+  const { t } = useLanguage();
   const userName = user ? user.name.split(' ')[0] : 'Priya';
 
   const triggerNotification = (message: string) => {
@@ -38,6 +41,14 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
 
   return (
     <div className="flex min-h-screen bg-[#f4f7f5] text-slate-800 font-sans selection:bg-[#2D6A4F] selection:text-white">
+      
+      {/* Slide Section Language Drawer */}
+      <LanguageDrawer
+        onLanguageChanged={(lang) => {
+          triggerNotification(`${t('applied_language', 'Language updated successfully to')} ${lang.nativeName} (${lang.name})`);
+        }}
+      />
+
       
       {/* 1. Left Sidebar Navigation */}
       <Sidebar

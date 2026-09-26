@@ -1,5 +1,6 @@
 import React from 'react';
 import { PhoneCall, UserCheck, ShieldCheck, Briefcase } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface QuickActionsGridProps {
   onEmergencyHelp?: () => void;
@@ -14,10 +15,12 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
   onCrisisResources,
   onSelfCareTools
 }) => {
+  const { t } = useLanguage();
+
   const items = [
     {
       id: 'emergency',
-      label: 'Emergency Help',
+      label: t('emergency_help', 'Emergency Help'),
       icon: PhoneCall,
       bgColor: 'bg-[#FDEEEF] hover:bg-[#FCDADF]',
       textColor: 'text-[#E53E3E]',
@@ -26,7 +29,7 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
     },
     {
       id: 'therapist',
-      label: 'Find a Therapist',
+      label: t('find_therapist', 'Find a Therapist'),
       icon: UserCheck,
       bgColor: 'bg-[#E8F5E9] hover:bg-[#D8F3DC]',
       textColor: 'text-[#2D6A4F]',
@@ -35,7 +38,7 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
     },
     {
       id: 'crisis',
-      label: 'Crisis Resources',
+      label: t('crisis_resources', 'Crisis Resources'),
       icon: ShieldCheck,
       bgColor: 'bg-[#E3F2FD] hover:bg-[#BBDEFB]',
       textColor: 'text-[#1976D2]',
@@ -44,7 +47,7 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
     },
     {
       id: 'tools',
-      label: 'Self-Care Tools',
+      label: t('self_care_tools', 'Self-Care Tools'),
       icon: Briefcase,
       bgColor: 'bg-[#F3E5F5] hover:bg-[#E1BEE7]',
       textColor: 'text-[#7B1FA2]',
@@ -55,7 +58,8 @@ export const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-bold text-[#1B4332]">Quick Actions</h3>
+      <h3 className="text-sm font-bold text-[#1B4332]">{t('dashboard', 'Quick Actions')}</h3>
+
 
       <div className="grid grid-cols-2 gap-3">
         {items.map((item) => {

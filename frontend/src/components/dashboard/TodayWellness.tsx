@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface WellnessItem {
   id: string;
@@ -8,6 +9,8 @@ interface WellnessItem {
 }
 
 export const TodayWellness: React.FC = () => {
+  const { t } = useLanguage();
+
   const [items, setItems] = useState<WellnessItem[]>([
     { id: '1', label: 'Mindful breathing (5 min)', completed: true },
     { id: '2', label: 'Journal your thoughts', completed: true },
@@ -37,9 +40,10 @@ export const TodayWellness: React.FC = () => {
       
       {/* Title */}
       <div>
-        <h2 className="text-base font-bold text-[#1B4332]">Today's Wellness</h2>
+        <h2 className="text-base font-bold text-[#1B4332]">{t('today_wellness', "Today's Wellness")}</h2>
         <p className="text-xs text-slate-500 font-medium">Daily self-care habits</p>
       </div>
+
 
       {/* Progress Ring & Checklist Content */}
       <div className="flex items-center gap-5">
