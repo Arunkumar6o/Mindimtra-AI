@@ -7,7 +7,7 @@ import { LanguageProvider } from './context/LanguageContext';
 
 export function App() {
   const [activeOption, setActiveOption] = useState<string>('option1');
-  const [user, setUser] = useState<{ email: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ id?: string; email: string; name: string } | null>(null);
   const [showLoginToast, setShowLoginToast] = useState<boolean>(false);
 
   useEffect(() => {
@@ -15,15 +15,25 @@ export function App() {
     const savedUser = localStorage.getItem('mindmitra_user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        if (!parsed.id) {
+          parsed.id = parsed.email === 'demo@mindmitra.ai' 
+            ? '00000000-0000-0000-0000-000000000001' 
+            : '11111111-1111-1111-1111-111111111111';
+        }
+        setUser(parsed);
       } catch (e) {
-        setUser({ email: 'demo@mindmitra.ai', name: 'Alex Mercer' });
+        setUser({ id: '00000000-0000-0000-0000-000000000001', email: 'demo@mindmitra.ai', name: 'Alex Mercer' });
       }
     }
   }, []);
 
-  const handleSuccessLogin = (userData: { email: string; name: string }) => {
-    setUser(userData);
+  const handleSuccessLogin = (userData: { id?: string; email: string; name: string }) => {
+    const enriched = {
+      ...userData,
+      id: userData.id || (userData.email === 'demo@mindmitra.ai' ? '00000000-0000-0000-0000-000000000001' : '11111111-1111-1111-1111-111111111111')
+    };
+    setUser(enriched);
     setActiveOption('option1');
     setShowLoginToast(true);
     setTimeout(() => {

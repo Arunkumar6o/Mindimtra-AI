@@ -13,11 +13,22 @@ import { RecommendedResources } from './RecommendedResources';
 import { RecentActivityTimeline } from './RecentActivityTimeline';
 import { AIModulesSection } from '../AIModulesSection';
 import { LanguageDrawer } from './LanguageDrawer';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
+// Import all newly developed functional sanctuary sections
+import { MeditationSection } from './sections/MeditationSection';
+import { MoodTrackingSection } from './sections/MoodTrackingSection';
+import { SelfCareSection } from './sections/SelfCareSection';
+import { JournalingSection } from './sections/JournalingSection';
+import { GoalsSection } from './sections/GoalsSection';
+import { AppointmentsSection } from './sections/AppointmentsSection';
+import { CommunitySection } from './sections/CommunitySection';
+import { ResourcesSection } from './sections/ResourcesSection';
+import { SettingsSection } from './sections/SettingsSection';
+
 interface MindmitraDashboardProps {
-  user: { email: string; name: string } | null;
+  user: { id?: string; email: string; name: string } | null;
   onLogout: () => void;
   onNavigateToLogin?: () => void;
 }
@@ -49,14 +60,13 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
         }}
       />
 
-      
       {/* 1. Left Sidebar Navigation */}
       <Sidebar
         activeTab={activeSidebarTab}
         onSelectTab={(tab) => {
           setActiveSidebarTab(tab);
           if (tab !== 'dashboard') {
-            triggerNotification(`Switched view to ${tab.toUpperCase()} module`);
+            triggerNotification(`Switched view to ${tab.replace('-', ' ').toUpperCase()}`);
           }
         }}
       />
@@ -69,6 +79,7 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
           userName={userName}
           onLogout={onLogout}
           onOpenNotifications={() => triggerNotification('You have 2 unread wellness reminders!')}
+          onOpenSettings={() => setActiveSidebarTab('settings')}
           onSearch={(query) => {
             if (query.length > 2) triggerNotification(`Searching for "${query}"...`);
           }}
@@ -91,20 +102,38 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
         {/* 3. Dashboard Body Grid Area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1440px] w-full mx-auto">
           
+          {/* Breadcrumb / Back to Dashboard when in sub-views */}
+          {activeSidebarTab !== 'dashboard' && (
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+              <button
+                onClick={() => setActiveSidebarTab('dashboard')}
+                className="flex items-center gap-2 text-xs font-bold text-[#2D6A4F] hover:text-[#1B4332] bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to Dashboard Overview</span>
+              </button>
+
+              <div className="text-xs text-slate-500 font-medium">
+                Sanctuary View: <strong className="text-[#1B4332] capitalize">{activeSidebarTab.replace('-', ' ')}</strong>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW SWITCHER */}
           {activeSidebarTab === 'dashboard' ? (
             <>
               {/* Row 1: Scenic Hero Greeting Banner */}
               <HeroBanner
                 userName={userName}
-                onOpenMoodCheckIn={() => triggerNotification('Opening Daily Mood Check-In')}
+                onOpenMoodCheckIn={() => setActiveSidebarTab('mood')}
               />
 
               {/* Row 2: Quick Actions 4-Card Strip */}
               <QuickActionsStrip
-                onStartMeditation={() => triggerNotification('Starting Guided Morning Meditation')}
-                onWriteJournal={() => triggerNotification('Opening Journaling Workspace')}
-                onCheckMood={() => triggerNotification('Opening Mood Logger')}
-                onTalkCommunity={() => triggerNotification('Connecting to Community Discussion')}
+                onStartMeditation={() => setActiveSidebarTab('meditation')}
+                onWriteJournal={() => setActiveSidebarTab('journaling')}
+                onCheckMood={() => setActiveSidebarTab('mood')}
+                onTalkCommunity={() => setActiveSidebarTab('community')}
               />
 
               {/* Row 3: Main Mid Section (3-Column Left Grid + Right Sidebar Panel) */}
@@ -134,18 +163,20 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
                 <div className="lg:col-span-4 space-y-6">
                   
                   <QuickActionsGrid
-                    onEmergencyHelp={() => triggerNotification('Connecting to Crisis Support Hotline (1-800-273-TALK)')}
-                    onFindTherapist={() => triggerNotification('Opening Licensed Therapist Directory')}
-                    onCrisisResources={() => triggerNotification('Displaying Safety & Crisis Defense Guide')}
-                    onSelfCareTools={() => triggerNotification('Opening Mindfulness Toolkit')}
+                    onEmergencyHelp={() => setActiveSidebarTab('resources')}
+                    onFindTherapist={() => setActiveSidebarTab('resources')}
+                    onCrisisResources={() => setActiveSidebarTab('resources')}
+                    onSelfCareTools={() => setActiveSidebarTab('self-care')}
                   />
 
                   <UpcomingSchedule
-                    onSeeAll={() => triggerNotification('Viewing Full Appointments Calendar')}
+                    onSeeAll={() => setActiveSidebarTab('appointments')}
                     onSelectItem={(id) => triggerNotification(`Opening Event Details #${id}`)}
                   />
 
-                  <OneMinuteBreatherCard />
+                  <OneMinuteBreatherCard 
+                    onOpenFullMeditation={() => setActiveSidebarTab('meditation')}
+                  />
 
                 </div>
 
@@ -156,25 +187,42 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
                 
                 <div className="lg:col-span-7">
                   <RecommendedResources
-                    onSeeAll={() => triggerNotification('Viewing All Wellness Resources')}
+                    onSeeAll={() => setActiveSidebarTab('resources')}
                   />
                 </div>
 
                 <div className="lg:col-span-5">
                   <RecentActivityTimeline
-                    onSeeAll={() => triggerNotification('Viewing Complete Activity History')}
+                    onSeeAll={() => setActiveSidebarTab('mood')}
                   />
                 </div>
 
               </div>
 
-              {/* Row 5: AI Sanctuary Suite (RoBERTa Emotion Classifier & Gemini AI Companion) */}
+              {/* Row 5: AI Sanctuary Suite (Emotion Check-in & AI Companion) */}
               <div className="pt-4">
-                <AIModulesSection />
+                <AIModulesSection user={user} />
               </div>
             </>
+          ) : activeSidebarTab === 'meditation' ? (
+            <MeditationSection user={user} onNavigateHome={() => setActiveSidebarTab('dashboard')} />
+          ) : activeSidebarTab === 'mood' ? (
+            <MoodTrackingSection user={user} />
+          ) : activeSidebarTab === 'self-care' ? (
+            <SelfCareSection user={user} />
+          ) : activeSidebarTab === 'journaling' ? (
+            <JournalingSection user={user} />
+          ) : activeSidebarTab === 'goals' ? (
+            <GoalsSection user={user} />
+          ) : activeSidebarTab === 'appointments' ? (
+            <AppointmentsSection user={user} />
+          ) : activeSidebarTab === 'community' ? (
+            <CommunitySection />
+          ) : activeSidebarTab === 'resources' || activeSidebarTab === 'help' ? (
+            <ResourcesSection />
+          ) : activeSidebarTab === 'settings' ? (
+            <SettingsSection user={user} />
           ) : (
-            /* Alternate Sidebar Sub-View Display */
             <div className="bg-white rounded-3xl p-8 border border-slate-200 text-center space-y-4">
               <h2 className="text-2xl font-bold text-[#1B4332] uppercase tracking-wide">
                 {activeSidebarTab} Module
@@ -184,9 +232,10 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
               </p>
               <button
                 onClick={() => setActiveSidebarTab('dashboard')}
-                className="px-6 py-2.5 rounded-2xl bg-[#2D6A4F] text-white font-bold text-xs shadow-md cursor-pointer"
+                className="px-6 py-2.5 rounded-2xl bg-[#2D6A4F] text-white font-bold text-xs shadow-md cursor-pointer inline-flex items-center gap-2"
               >
-                Return to Dashboard Overview
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Return to Dashboard Overview</span>
               </button>
             </div>
           )}

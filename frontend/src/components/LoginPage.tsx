@@ -11,19 +11,17 @@ import {
   LogOut, 
   UserCheck, 
   Sparkles,
-  ArrowLeft,
-  Database
+  ArrowLeft
 } from 'lucide-react';
 import { 
   registerUserInSupabase, 
   loginUserWithSupabase, 
-  DEMO_USER,
-  isSupabaseConfigured
+  DEMO_USER
 } from '../lib/supabase';
 
 interface LoginPageProps {
-  user: { email: string; name: string } | null;
-  onSuccessLogin: (userData: { email: string; name: string }) => void;
+  user: { email: string; name: string; id?: string } | null;
+  onSuccessLogin: (userData: { email: string; name: string; id?: string }) => void;
   onLogout: () => void;
   onNavigateHome: () => void;
 }
@@ -81,12 +79,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         );
 
         if (error || !registeredUser) {
-          setErrorMsg(error || 'Failed to register account in Supabase database.');
+          setErrorMsg(error || 'Failed to create your account. Please try again.');
           setIsLoading(false);
           return;
         }
 
         const userObj = {
+          id: registeredUser.id,
           email: registeredUser.email,
           name: registeredUser.name
         };
@@ -97,7 +96,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         }
         localStorage.setItem('mindmitra_user', JSON.stringify(userObj));
 
-        setSuccessMsg('Account created and saved in Supabase database! Logging in...');
+        setSuccessMsg('Account created successfully! Welcome to MindMitra...');
         setIsLoading(false);
 
         setTimeout(() => {
@@ -118,6 +117,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         }
 
         const userObj = {
+          id: authUser.id,
           email: authUser.email,
           name: authUser.name
         };
@@ -130,7 +130,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setSuccessMsg(
           isDemo 
             ? 'Demo login successful! (Local Demo Access)' 
-            : 'Authenticated successfully via Supabase Database!'
+            : 'Signed in successfully! Welcome back.'
         );
         setIsLoading(false);
 
@@ -160,12 +160,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs text-[#2D6A4F] font-semibold bg-[#E8F5E9] px-3.5 py-1 rounded-full border border-[#d8e8dc]">
-            <Database className="w-3.5 h-3.5 text-[#2D6A4F]" />
-            <span>Supabase DB Auth {isSupabaseConfigured() ? 'Live' : 'Active'}</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-[#2D6A4F]" />
+            <span>Secure Authentication Live</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-[#1565C0] font-semibold bg-[#E3F2FD] px-3.5 py-1 rounded-full border border-[#BBDEFB]">
             <ShieldCheck className="w-3.5 h-3.5 text-[#1565C0]" />
-            <span>AES-256 Encrypted</span>
+            <span>Private & Encrypted</span>
           </div>
         </div>
       </div>
@@ -213,14 +213,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <span className="text-[#2D6A4F]">Authentication Portal</span>
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Sign in or create an account stored securely in the <strong>Supabase Database</strong> to access your personal mood logs, fine-grained sentiment analysis, and saved companion history.
+                Sign in or create an account to securely access your personal mood reflections, well-being insights, and companion history.
               </p>
             </div>
 
             <div className="space-y-3 pt-4 border-t border-slate-100 text-xs">
               <div className="flex items-center gap-2.5 text-slate-700 font-medium">
-                <Database className="w-4 h-4 text-[#2D6A4F] shrink-0" />
-                <span>Supabase Database User Registration</span>
+                <ShieldCheck className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                <span>Private & Encrypted Sanctuary Account</span>
               </div>
               <div className="flex items-center gap-2.5 text-slate-700 font-medium">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
@@ -357,10 +357,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 className="w-full py-3 rounded-xl bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-bold text-xs sm:text-sm shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {isLoading ? (
-                  <span>Communicating with Supabase...</span>
+                  <span>Signing in securely...</span>
                 ) : (
                   <>
-                    <span>{isRegister ? 'Register Account to Supabase DB' : 'Sign In via Supabase / Demo'}</span>
+                    <span>{isRegister ? 'Create Your Account' : 'Sign In'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -368,7 +368,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </form>
 
             <div className="pt-2 text-center text-[11px] text-slate-500">
-              Registration data is stored in the Supabase database table (`profiles` / Supabase Auth).
+              Your personal data and reflections are encrypted and strictly confidential.
             </div>
 
           </div>

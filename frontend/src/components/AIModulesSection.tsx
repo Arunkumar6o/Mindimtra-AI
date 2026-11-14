@@ -1,22 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   BrainCircuit, 
   MessageSquareHeart, 
   Sparkles, 
   ShieldCheck, 
-  Tag, 
   Activity, 
   RefreshCw, 
   Lightbulb, 
-  Sliders,
-  Send,
-  Database,
-  User,
-  Bot,
-  Mic,
-  MicOff,
-  Volume2
+  Sliders, 
+  Send, 
+  User, 
+  Bot, 
+  Mic, 
+  MicOff, 
+  Volume2,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  HeartPulse,
+  RotateCcw
 } from 'lucide-react';
+import {
+  resolveUserId,
+  saveConversationMessage,
+  getStoredUserMessages,
+  runUnifiedEmotionalAnalysis,
+  getLatestAnalysis,
+  getConcernLevel,
+  clearUserConversationHistory,
+  type UnifiedAnalysisResult
+} from '../services/unifiedAnalysisService';
+import {
+  initEmotionModel,
+  classifyEmotionText,
+  subscribeModelStatus,
+  getModelStatus,
+  type ModelProgressInfo,
+  DISPLAY_MODEL_NAME
+} from '../services/emotionModelService';
 
 interface ChatMessage {
   id: string;
@@ -27,43 +53,184 @@ interface ChatMessage {
   scrubbed?: boolean;
 }
 
-export const AIModulesSection: React.FC = () => {
-  const [activeModuleTab, setActiveModuleTab] = useState<'classifier' | 'companion'>('classifier');
+interface AIModulesSectionProps {
+  user?: { id?: string; email?: string; name?: string } | null;
+}
 
-  // --- Emotion Classifier State & Handlers ---
-  const [inputText, setInputText] = useState<string>('I feel quite overwhelmed with my workload today, but I am trying to stay hopeful.');
+export const AIModulesSection: React.FC<AIModulesSectionProps> = ({ user }) => {
+  const [activeModuleTab, setActiveModuleTab] = useState<'classifier' | 'companion'>('classifier');
+  const userId = resolveUserId(user);
+
+  // --- Real Transformer Model Status ---
+  const [modelStatus, setModelStatus] = useState<ModelProgressInfo>(getModelStatus());
+
+  // --- Unified Analysis State ---
+  const [unifiedAnalysis, setUnifiedAnalysis] = useState<UnifiedAnalysisResult | null>(null);
+  const [isRefreshingAnalysis, setIsRefreshingAnalysis] = useState<boolean>(false);
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState<boolean>(false);
+  const [analysisToast, setAnalysisToast] = useState<string | null>(null);
+
+  // --- Emotion Classifier State ---
+  const [inputText, setInputText] = useState<string>(
+    'I feel quite overwhelmed with my workload today, but I am trying to stay hopeful.'
+  );
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisResult, setAnalysisResult] = useState<any>({
-    primary_emotion: 'Anxiety / Stress',
-    confidence: 68.5,
+    primary_emotion: 'Calmness / Equilibrium',
+    confidence: 76.5,
     scrubbed_text: 'I feel quite overwhelmed with my workload today, but I am trying to stay hopeful.',
     pii_protected: false,
-    model_used: 'RoBERTa-v2 (PyTorch + HuggingFace)',
-    nlp_engine: 'spaCy v3.7 Entity Extractor',
+    model_used: DISPLAY_MODEL_NAME,
+    nlp_engine: 'Emotion Intelligence Engine',
     emotions_breakdown: {
-      'Anxiety / Stress': 68.5,
-      'Joy / Serenity': 12.0,
-      'Calmness / Equilibrium': 10.5,
-      'Sadness / Grief': 5.0,
-      'Anger / Frustration': 2.5,
-      'Fear / Vulnerability': 1.5
+      'Calmness / Equilibrium': 38.5,
+      'Joy / Serenity': 27.2,
+      'Anxiety / Stress': 16.4,
+      'Sadness / Grief': 8.5,
+      'Fear / Vulnerability': 5.8,
+      'Anger / Frustration': 3.6
     },
     extracted_keywords: ['overwhelmed', 'workload', 'hopeful', 'trying'],
     empathetic_insight: 'Try 4-7-8 deep breathing: Inhale 4s, Hold 7s, Exhale 8s. Ground yourself with 5 things you can see right now.'
   });
 
-  // --- Voiceover / Speech-to-Text State & Handlers ---
+  // --- Voiceover / Speech-to-Text State ---
   const [isListening, setIsListening] = useState<boolean>(false);
   const [voiceNotice, setVoiceNotice] = useState<string>('');
   const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
 
+  // --- Empathetic AI Companion State ---
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'init_welcome',
+      sender: 'gemini',
+      text: "Hello there! I'm Mindmitra, your compassionate companion for emotional well-being. I'm here to listen, support, and help you reflect in a safe, judgment-free space. How are you feeling today?",
+      timestamp: '10:00 AM',
+      suggestedActions: [
+        "I feel overwhelmed with work",
+        "Help me calm my anxious mind",
+        "I want to practice mindfulness"
+      ]
+    }
+  ]);
+  const [inputMsg, setInputMsg] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
   const samplePrompts = [
     "I feel quite overwhelmed with my workload today, but I am trying to stay hopeful.",
     "I had an amazing conversation with a friend and felt so calm and peaceful in nature.",
-    "My email is john.doe@example.com and phone is 555-0199. I feel worried about the project release.",
+    "My email is alex@example.com. I feel so much pressure about the project release.",
     "Everything is going wrong today and I am furious with how things were handled!"
   ];
 
+  const starterPrompts = [
+    "I'm feeling anxious about an upcoming deadline.",
+    "Can you suggest a quick 2-minute grounding exercise?",
+    "I feel emotionally exhausted today.",
+    "How do I deal with racing thoughts at night?"
+  ];
+
+  const triggerToast = (msg: string) => {
+    setAnalysisToast(msg);
+    setTimeout(() => setAnalysisToast(null), 3500);
+  };
+
+  /**
+   * Load historical messages & latest unified analysis on mount or user change
+   */
+  const loadUserData = useCallback(async () => {
+    try {
+      const stored = await getStoredUserMessages(userId);
+
+      // Restore companion chat messages if historical entries exist
+      const companionHistory = stored.allMessages.filter(m => m.source === 'gemini_companion');
+      if (companionHistory.length > 0) {
+        setMessages(
+          companionHistory.map(m => ({
+            id: m.id,
+            sender: m.role === 'assistant' ? 'gemini' : 'user',
+            text: m.content,
+            timestamp: m.timestamp,
+            scrubbed: false
+          }))
+        );
+      }
+
+      // Restore latest unified analysis
+      const latest = await getLatestAnalysis(userId);
+      if (latest) {
+        setUnifiedAnalysis(latest);
+      } else {
+        // Run initial analysis with available messages
+        const initial = await runUnifiedEmotionalAnalysis({
+          userId,
+          robertaSnapshot: analysisResult
+        });
+        setUnifiedAnalysis(initial);
+      }
+    } catch (e) {
+      console.warn('Error loading initial user emotional data:', e);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
+
+  // Warm up and monitor real DistilRoBERTa Transformers.js model
+  useEffect(() => {
+    const unsubscribe = subscribeModelStatus((info) => {
+      setModelStatus(info);
+    });
+
+    // Start background preload of genuine DistilRoBERTa ONNX weights
+    initEmotionModel().catch((err) => {
+      console.warn('DistilRoBERTa background initialization notice:', err);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  /**
+   * Trigger fresh unified analysis on demand
+   */
+  const handleRefreshUnifiedAnalysis = async () => {
+    setIsRefreshingAnalysis(true);
+    try {
+      const fresh = await runUnifiedEmotionalAnalysis({
+        userId,
+        robertaSnapshot: analysisResult
+      });
+      setUnifiedAnalysis(fresh);
+      triggerToast('Unified analysis updated from both conversation sources!');
+    } catch (e) {
+      triggerToast('Analysis updated using local emotional fusion engine.');
+    } finally {
+      setIsRefreshingAnalysis(false);
+    }
+  };
+
+  /**
+   * Reset / Clear all stored conversation history for fresh testing
+   */
+  const handleClearHistory = async () => {
+    if (window.confirm('Reset emotional history? This clears previous test messages so your new inputs start fresh.')) {
+      await clearUserConversationHistory(userId);
+      setMessages([]);
+      const reset = await runUnifiedEmotionalAnalysis({
+        userId,
+        robertaSnapshot: null
+      });
+      setUnifiedAnalysis(reset);
+      triggerToast('Conversation history reset. Ready for clean emotional analysis!');
+    }
+  };
+
+  /**
+   * Voiceover / Speech-to-Text
+   */
   const toggleVoiceInput = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -120,7 +287,7 @@ export const AIModulesSection: React.FC = () => {
         }
       };
 
-      recognition.onerror = (_event: any) => {
+      recognition.onerror = () => {
         setIsListening(false);
         setVoiceNotice('Voice error or mic permission denied.');
         setTimeout(() => setVoiceNotice(''), 4000);
@@ -140,111 +307,116 @@ export const AIModulesSection: React.FC = () => {
     }
   };
 
+  /**
+   * Source A: Submit statement to Emotion Classifier
+   * 1. Runs genuine DistilRoBERTa Transformer inference via Transformers.js
+   * 2. Saves statement with source='emotion_classifier', role='user'
+   * 3. Triggers unified analysis across BOTH conversation sources
+   */
   const handleAnalyze = async (textToAnalyze?: string) => {
     const text = textToAnalyze || inputText;
     if (!text || !text.trim()) return;
 
     setIsAnalyzing(true);
+    let emotionData: any = null;
 
     try {
-      const res = await fetch('/api/emotion/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+      // Execute genuine DistilRoBERTa model inference using ONNX Runtime WASM (Transformers.js)
+      emotionData = await classifyEmotionText(text);
+      setAnalysisResult(emotionData);
+    } catch (err: any) {
+      console.error('Transformers.js DistilRoBERTa inference error:', err);
+      triggerToast(`Emotion inference notice: ${err?.message || 'Model error'}`);
+    }
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setAnalysisResult(data);
-          setIsAnalyzing(false);
-          return;
-        }
-      }
-    } catch (e) {}
-
-    setTimeout(() => {
-      const lower = text.toLowerCase();
-      let primary = 'Calmness / Equilibrium';
-      let confidence = 75.0;
-
-      if (lower.includes('anxious') || lower.includes('overwhelmed') || lower.includes('worried')) {
-        primary = 'Anxiety / Stress';
-        confidence = 82.4;
-      } else if (lower.includes('amazing') || lower.includes('peaceful') || lower.includes('happy')) {
-        primary = 'Joy / Serenity';
-        confidence = 89.1;
-      } else if (lower.includes('furious') || lower.includes('wrong') || lower.includes('angry')) {
-        primary = 'Anger / Frustration';
-        confidence = 84.0;
-      } else if (lower.includes('sad') || lower.includes('lonely') || lower.includes('hopeless')) {
-        primary = 'Sadness / Grief';
-        confidence = 78.6;
-      }
-
-      const scrubbed = text
-        .replace(/[\w\.-]+@[\w\.-]+\.\w+/g, '[EMAIL_REDACTED]')
-        .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE_REDACTED]');
-
-      setAnalysisResult({
-        primary_emotion: primary,
-        confidence: confidence,
-        scrubbed_text: scrubbed,
-        pii_protected: scrubbed !== text,
-        model_used: 'RoBERTa-v2 (PyTorch Engine)',
-        nlp_engine: 'spaCy v3.7 Pipeline',
-        emotions_breakdown: {
-          [primary]: confidence,
-          'Calmness / Equilibrium': Math.round((100 - confidence) * 0.4),
-          'Joy / Serenity': Math.round((100 - confidence) * 0.3),
-          'Anxiety / Stress': Math.round((100 - confidence) * 0.2),
-          'Sadness / Grief': Math.round((100 - confidence) * 0.1)
-        },
-        extracted_keywords: text.split(' ').filter(w => w.length > 4).slice(0, 5),
-        empathetic_insight: `Recognized ${primary}. Remember to give yourself grace and take a moment to pause.`
-      });
+    if (!emotionData) {
       setIsAnalyzing(false);
-    }, 600);
+      return;
+    }
+
+    // 2. Save user message with source='emotion_classifier'
+    try {
+      await saveConversationMessage({
+        userId,
+        source: 'emotion_classifier',
+        role: 'user',
+        content: text,
+        detectedEmotion: emotionData.primary_emotion,
+        emotionConfidence: emotionData.confidence
+      });
+    } catch (e) {
+      console.warn('Error saving classifier message:', e);
+    }
+
+    // 3. Update unified analysis incorporating both sources
+    try {
+      const updated = await runUnifiedEmotionalAnalysis({
+        userId,
+        robertaSnapshot: emotionData
+      });
+      setUnifiedAnalysis(updated);
+      triggerToast('Reflection analyzed and well-being score updated!');
+    } catch (e) {
+      console.warn('Error running unified analysis:', e);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  // --- Gemini AI Companion State & Handlers ---
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      sender: 'gemini',
-      text: "Hello there! I'm Mindmitra, your empathetic AI companion powered by Gemini API & PostgreSQL vector memory. I'm here to listen, support, and help you reflect without judgment. How are you feeling today?",
-      timestamp: '10:00 AM',
-      suggestedActions: [
-        "I feel overwhelmed with work",
-        "Help me calm my anxious mind",
-        "I want to practice mindfulness"
-      ]
-    }
-  ]);
-  const [inputMsg, setInputMsg] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-
-  const starterPrompts = [
-    "I'm feeling anxious about an upcoming deadline.",
-    "Can you suggest a quick 2-minute grounding exercise?",
-    "I feel emotionally exhausted today.",
-    "How do I deal with racing thoughts at night?"
-  ];
-
+  /**
+   * Empathetic Companion: Send message in AI Companion
+   * 1. Saves user message with source='gemini_companion', role='user'
+   * 2. Gets companion response and saves with role='assistant'
+   * 3. Triggers unified analysis across BOTH conversation sources
+   */
   const handleSendMessage = async (textToSend?: string) => {
     const text = textToSend || inputMsg;
     if (!text.trim()) return;
 
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       sender: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: timeStr
     };
 
     setMessages((prev) => [...prev, userMessage]);
     if (!textToSend) setInputMsg('');
     setIsTyping(true);
+
+    // Analyze emotional tone to tag detected emotion
+    let detectedEmotion = 'Calmness / Equilibrium';
+    let detectedConfidence = 70.0;
+    try {
+      const classified = await classifyEmotionText(text);
+      detectedEmotion = classified.primary_emotion;
+      detectedConfidence = classified.confidence;
+    } catch (e) {
+      // Silently proceed if model still warming up
+    }
+
+    // 1. Save USER message with source='gemini_companion'
+    try {
+      await saveConversationMessage({
+        userId,
+        source: 'gemini_companion',
+        role: 'user',
+        content: text,
+        detectedEmotion,
+        emotionConfidence: detectedConfidence
+      });
+    } catch (e) {
+      console.warn('Error saving companion user message:', e);
+    }
+
+    let botText = '';
+    let suggestedActions = [
+      'Log this session in Mood Tracker',
+      'Try a 2-minute Guided Breathing session',
+      'Read Resilience Quote'
+    ];
+    let isScrubbed = false;
 
     try {
       const res = await fetch('/api/chat/respond', {
@@ -256,47 +428,76 @@ export const AIModulesSection: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          const geminiMsg: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            sender: 'gemini',
-            text: data.response,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            suggestedActions: data.suggested_actions,
-            scrubbed: data.scrubbed_input !== text
-          };
-          setMessages((prev) => [...prev, geminiMsg]);
-          setIsTyping(false);
-          return;
+          botText = data.response;
+          suggestedActions = data.suggested_actions || suggestedActions;
+          isScrubbed = Boolean(data.pii_protected);
         }
       }
     } catch (e) {}
 
-    setTimeout(() => {
-      const botResponses = [
-        `Thank you for opening up to me about "${text.slice(0, 30)}...". Your feelings are completely valid. Taking a gentle pause right now can help restore balance. What would bring you comfort in this moment?`,
-        `I hear you clearly. When we experience these thoughts, grounding ourselves in the present moment is key. Try taking three deep, slow breaths—in for 4 seconds, out for 6 seconds.`,
-        `Mindmitra is right here with you. Remember that you don't have to carry everything all at once. What is one small, kind thing you can do for yourself today?`
-      ];
+    if (!botText) {
+      const lower = text.toLowerCase();
+      if (lower.includes('anxious') || lower.includes('overwhelm') || lower.includes('deadline')) {
+        botText = `Thank you for sharing that with me. It is completely natural to feel overwhelmed when deadlines and demands pile up. Taking a deep, gentle breath right now can give your mind the pause it deserves. What is one small task you can set aside for today to give yourself some breathing room?`;
+        suggestedActions = ['Start 4-7-8 Breathing', 'Break workload into small steps', 'Take a 5-minute breather'];
+      } else if (lower.includes('sad') || lower.includes('alone') || lower.includes('down')) {
+        botText = `I hear you, and your feelings are completely valid. Experiencing heavy days can feel draining, but you don't have to carry all of it alone. I am right here with you. What would feel most comforting to you in this exact moment?`;
+        suggestedActions = ['Listen to soothing music', 'Drink a glass of warm water', 'Rest and pause'];
+      } else {
+        botText = `Thank you for opening up to me. Hearing your thoughts helps us find steady ground together. When feelings swirl, grounding yourself in the present moment is deeply restorative. How does your body feel right now as we talk?`;
+      }
+    }
 
-      const geminiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'gemini',
-        text: botResponses[Math.floor(Math.random() * botResponses.length)],
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggestedActions: [
-          "Log this session in Mood Tracker",
-          "Try a 2-minute Guided Breathing session",
-          "Read Resilience Quote"
-        ]
-      };
-      setMessages((prev) => [...prev, geminiMsg]);
-      setIsTyping(false);
-    }, 750);
+    const geminiMsg: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      sender: 'gemini',
+      text: botText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      suggestedActions,
+      scrubbed: isScrubbed
+    };
+
+    setMessages((prev) => [...prev, geminiMsg]);
+    setIsTyping(false);
+
+    // 2. Save companion assistant response (role='assistant')
+    try {
+      await saveConversationMessage({
+        userId,
+        source: 'gemini_companion',
+        role: 'assistant',
+        content: botText
+      });
+    } catch (e) {}
+
+    // 3. Trigger unified analysis update across all user messages from both sources
+    try {
+      const updated = await runUnifiedEmotionalAnalysis({
+        userId,
+        robertaSnapshot: analysisResult
+      });
+      setUnifiedAnalysis(updated);
+      triggerToast('Your companion reflection has been incorporated into your well-being score!');
+    } catch (e) {
+      console.warn('Error updating unified analysis from companion:', e);
+    }
   };
+
+  const concernInfo = unifiedAnalysis
+    ? getConcernLevel(unifiedAnalysis.overall_score)
+    : getConcernLevel(3.5);
 
   return (
     <div className="space-y-6 bg-white border border-[#e5ebe6] shadow-sm rounded-3xl p-6 sm:p-8">
       
+      {/* Dynamic Toast Notice */}
+      {analysisToast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-fadeIn bg-[#1B4332] text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-emerald-500/40 backdrop-blur-md">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+          <span>{analysisToast}</span>
+        </div>
+      )}
+
       {/* Module Title Header & Sub-Tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
@@ -304,10 +505,10 @@ export const AIModulesSection: React.FC = () => {
             <span className="p-2 rounded-xl bg-[#E8F5E9] text-[#2D6A4F] border border-[#d8e8dc]">
               <Sparkles className="w-5 h-5" />
             </span>
-            <h2 className="text-xl font-bold text-[#1B4332]">Interactive AI Sanctuary Suite</h2>
+            <h2 className="text-xl font-bold text-[#1B4332]">Emotional Sanctuary Suite</h2>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Analyze fine-grained sentiment with RoBERTa transformer or talk to your empathetic Gemini AI companion.
+            Reflect on your thoughts and feelings to gain meaningful, unified insights into your emotional balance.
           </p>
         </div>
 
@@ -322,7 +523,7 @@ export const AIModulesSection: React.FC = () => {
             }`}
           >
             <BrainCircuit className="w-4 h-4" />
-            <span>Emotion Classifier</span>
+            <span>Emotion Check-in</span>
           </button>
 
           <button
@@ -334,38 +535,115 @@ export const AIModulesSection: React.FC = () => {
             }`}
           >
             <MessageSquareHeart className="w-4 h-4" />
-            <span>Gemini AI Companion</span>
+            <span>AI Companion</span>
           </button>
         </div>
       </div>
 
-      {/* Module Content 1: RoBERTa Emotion Classifier */}
+      {/* Cross-Tab Unified Analysis Summary Ribbon */}
+      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#eaf4eb] via-[#f4f9f4] to-[#fbf4ea] border border-[#d8e8dc] flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#2D6A4F] text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+            <HeartPulse className="w-5 h-5 text-emerald-100" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-[#1B4332]">Unified Emotional Well-being:</span>
+              <span className={`px-2 py-0.5 rounded-full text-white font-bold text-[11px] ${concernInfo.badgeColor}`}>
+                {unifiedAnalysis?.overall_score?.toFixed(1) || '3.5'} / 10
+              </span>
+              <span className="font-semibold text-slate-700 hidden sm:inline">
+                ({unifiedAnalysis?.concern_level || 'Generally stable'})
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Based on {unifiedAnalysis?.classifier_messages_count || 0} journal check-ins & {unifiedAnalysis?.companion_messages_count || 0} companion chats ({unifiedAnalysis?.messages_analyzed_count || 0} total reflections)
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleClearHistory}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-700 font-semibold text-xs transition-all shadow-xs cursor-pointer"
+            title="Clear all stored test messages to start fresh"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500 hover:text-rose-600" />
+            <span>Reset History</span>
+          </button>
+
+          <button
+            onClick={handleRefreshUnifiedAnalysis}
+            disabled={isRefreshingAnalysis}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-[#2D6A4F] font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Re-analyze all conversation messages from both sources"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingAnalysis ? 'animate-spin text-[#2D6A4F]' : ''}`} />
+            <span>{isRefreshingAnalysis ? 'Analyzing...' : 'Refresh Analysis'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Module Content 1: Emotion Check-in + Unified Analysis Results */}
       {activeModuleTab === 'classifier' && (
         <div className="space-y-6 animate-fadeIn">
           
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
             <div className="flex items-center gap-2 text-[#2D6A4F] font-bold">
               <Activity className="w-4 h-4 text-[#2D6A4F]" />
-              <span>RoBERTa PyTorch Fine-Grained Sentiment Analysis</span>
+              <span>Emotion Check-in & Journal Reflection</span>
             </div>
+            
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#E8F5E9] text-[#2D6A4F] border border-[#d8e8dc] rounded-full">
-                6 Emotion Classes
+              {/* Emotion Intelligence Status Badge */}
+              {modelStatus.status === 'loading' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin text-amber-600" />
+                  <span>Preparing emotional intelligence... {modelStatus.progressPercent > 0 ? `${modelStatus.progressPercent}%` : ''}</span>
+                </span>
+              )}
+              {modelStatus.status === 'ready' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Emotion Intelligence Ready</span>
+                </span>
+              )}
+              {modelStatus.status === 'error' && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Analysis standby</span>
+                  <button
+                    onClick={() => initEmotionModel()}
+                    className="underline hover:text-rose-950 font-bold ml-1 cursor-pointer"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {modelStatus.status === 'idle' && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                  <Activity className="w-3 h-3 text-slate-500" />
+                  <span>Analysis Standby</span>
+                </span>
+              )}
+
+              <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#E8F5E9] text-[#2D6A4F] border border-[#d8e8dc] rounded-full hidden sm:inline">
+                Comprehensive Spectrum
               </span>
-              <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#F3E5F5] text-[#7B1FA2] border border-[#e1bee7] rounded-full">
-                Voiceover Speech-to-Text
+              <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#F3E5F5] text-[#7B1FA2] border border-[#e1bee7] rounded-full hidden sm:inline">
+                Voice & Text
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Input Form Column (7 cols) */}
             <div className="lg:col-span-7 rounded-2xl bg-[#fafcfb] border border-slate-200 p-5 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="text-xs font-bold text-[#1B4332] flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-[#2D6A4F]" />
-                  <span>Statement / Journal Input</span>
+                  <span>Personal Journal & Reflection Statement</span>
                 </label>
 
                 {/* Voiceover Speech-to-Text Button */}
@@ -377,17 +655,17 @@ export const AIModulesSection: React.FC = () => {
                       ? 'bg-rose-100 text-rose-700 border border-rose-300 animate-pulse ring-2 ring-rose-400/50'
                       : 'bg-[#E8F5E9] hover:bg-[#D8F3DC] text-[#2D6A4F] border border-[#d8e8dc]'
                   }`}
-                  title="Voiceover - Speak into microphone to convert voice to text"
+                  title="Voice Input - Speak to convert voice to text"
                 >
                   {isListening ? (
                     <>
                       <MicOff className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-                      <span>Stop Voiceover</span>
+                      <span>Stop Voice Input</span>
                     </>
                   ) : (
                     <>
                       <Mic className="w-3.5 h-3.5 text-[#2D6A4F]" />
-                      <span>Voiceover (Speech-to-Text)</span>
+                      <span>Voice Input</span>
                     </>
                   )}
                 </button>
@@ -398,9 +676,9 @@ export const AIModulesSection: React.FC = () => {
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between animate-fadeIn">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping shrink-0" />
-                    <span className="font-semibold">Voiceover Active: Listening to your voice...</span>
+                    <span className="font-semibold">Listening to your voice... Speak naturally.</span>
                   </div>
-                  <span className="text-[11px] text-rose-600 italic hidden sm:inline">Converting speech to text</span>
+                  <span className="text-[11px] text-rose-600 italic hidden sm:inline">Transcribing speech</span>
                 </div>
               )}
 
@@ -415,7 +693,7 @@ export const AIModulesSection: React.FC = () => {
                 rows={4}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type or click Voiceover to speak your thoughts..."
+                placeholder="Type or click Voice Input to speak your thoughts..."
                 className="w-full p-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm focus:outline-none focus:border-[#2D6A4F] transition-all placeholder:text-slate-400 resize-none leading-relaxed"
               />
 
@@ -437,7 +715,11 @@ export const AIModulesSection: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end">
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-[11px] text-slate-500 italic">
+                  Saved securely to your emotional reflections.
+                </span>
+
                 <button
                   onClick={() => handleAnalyze()}
                   disabled={isAnalyzing}
@@ -446,101 +728,330 @@ export const AIModulesSection: React.FC = () => {
                   {isAnalyzing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin text-emerald-200" />
-                      <span>Analyzing...</span>
+                      <span>Analyzing Feelings...</span>
                     </>
                   ) : (
                     <>
                       <BrainCircuit className="w-4 h-4 text-white" />
-                      <span>Classify Emotion</span>
+                      <span>Analyze & Update Well-being</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Inference Results Column (5 cols) */}
+            {/* UNIFIED ANALYSIS RESULTS COLUMN (5 cols) */}
             <div className="lg:col-span-5 rounded-2xl bg-[#fafcfb] border border-slate-200 p-5 space-y-4">
+              
+              {/* Card Header */}
               <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
-                <h3 className="text-xs font-bold text-[#1B4332] flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" />
-                  <span>Analysis Results</span>
-                </h3>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {analysisResult.model_used}
-                </span>
-              </div>
+                <div>
+                  <h3 className="text-xs font-bold text-[#1B4332] flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>Unified Analysis Results</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-400">Combined Journal & Companion Reflections</p>
+                </div>
 
-              <div className="p-3.5 rounded-xl bg-[#E8F5E9] border border-[#d8e8dc] space-y-1">
-                <span className="text-[10px] uppercase font-bold text-[#2D6A4F] tracking-wider">
-                  Dominant Emotion
-                </span>
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-extrabold text-[#1B4332]">
-                    {analysisResult.primary_emotion}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#2D6A4F] text-white text-[11px] font-bold">
-                    {analysisResult.confidence}%
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">
+                    Unified Insights
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <span className="text-[11px] font-semibold text-slate-700">Emotion Probabilities:</span>
-                {Object.entries(analysisResult.emotions_breakdown || {}).map(([emotion, score]) => (
-                  <div key={emotion} className="space-y-0.5">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-slate-600 font-medium">{emotion}</span>
-                      <span className="text-[#1B4332] font-bold">{Number(score)}%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                      <div 
-                        className="bg-[#2D6A4F] h-1.5 rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.min(100, Math.max(0, Number(score)))}%` }} 
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-3 rounded-xl bg-white border border-slate-200 text-[11px] space-y-1">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="flex items-center gap-1 font-medium text-slate-700">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#2D6A4F]" />
-                    Presidio PII Scrubbing:
+              {/* 1–10 Overall Emotional Well-Being Score Card */}
+              <div className={`p-4 rounded-2xl border ${concernInfo.borderColor} ${concernInfo.bgColor} space-y-2`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500">
+                    OVERALL EMOTIONAL WELL-BEING
                   </span>
-                  {analysisResult.pii_protected && (
-                    <span className="text-[9px] bg-emerald-100 text-[#1B4332] px-2 py-0.5 rounded font-bold border border-emerald-200">
-                      Scrubbed
-                    </span>
+                  {/* Trend Indicator */}
+                  {unifiedAnalysis?.trend && (
+                    <div className="flex items-center gap-1 text-[11px] font-bold">
+                      {unifiedAnalysis.trend === 'improving' && (
+                        <span className="flex items-center gap-1 text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          <TrendingDown className="w-3.5 h-3.5" />
+                          <span>Improving</span>
+                        </span>
+                      )}
+                      {unifiedAnalysis.trend === 'increasing_concern' && (
+                        <span className="flex items-center gap-1 text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>Increasing concern</span>
+                        </span>
+                      )}
+                      {unifiedAnalysis.trend === 'stable' && (
+                        <span className="flex items-center gap-1 text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded-full">
+                          <Minus className="w-3.5 h-3.5" />
+                          <span>Stable</span>
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-                <p className="text-slate-600 font-mono text-[10px] italic">
-                  "{analysisResult.scrubbed_text}"
-                </p>
+
+                <div className="flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-slate-900 tracking-tight">
+                      {unifiedAnalysis?.overall_score?.toFixed(1) || '3.5'}
+                    </span>
+                    <span className="text-sm font-bold text-slate-400">/ 10</span>
+                  </div>
+
+                  <span className={`px-3 py-1 rounded-full text-white text-xs font-extrabold shadow-2xs ${concernInfo.badgeColor}`}>
+                    {unifiedAnalysis?.concern_level || 'Generally stable'}
+                  </span>
+                </div>
+
+                {/* Clear Scale Legend */}
+                <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200/60">
+                  <span className="text-emerald-700 font-semibold">1 = Very Good / Stable</span>
+                  <span className="text-rose-700 font-semibold">10 = High Concern / Distress</span>
+                </div>
               </div>
 
+              {/* Showing That Both Sources Were Analyzed */}
+              <div className="p-3 rounded-xl bg-white border border-slate-200 text-[11px] space-y-1.5">
+                <div className="flex items-center justify-between font-bold text-slate-700">
+                  <span className="flex items-center gap-1.5 text-[#1B4332]">
+                    <Layers className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                    <span>Reflection Sources</span>
+                  </span>
+                  <span className="text-[10px] font-extrabold text-[#2D6A4F] bg-[#E8F5E9] px-2 py-0.5 rounded-full">
+                    Total: {unifiedAnalysis?.messages_analyzed_count || 0} reflections
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div className="p-2 rounded-lg bg-[#f8faf8] border border-slate-100 flex items-center justify-between">
+                    <span className="text-slate-600 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-[#2D6A4F]" />
+                      Journal Check-ins
+                    </span>
+                    <strong className="text-slate-800">{unifiedAnalysis?.classifier_messages_count || 0} entries</strong>
+                  </div>
+                  <div className="p-2 rounded-lg bg-[#f8faf8] border border-slate-100 flex items-center justify-between">
+                    <span className="text-slate-600 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-[#1976D2]" />
+                      Companion Chats
+                    </span>
+                    <strong className="text-slate-800">{unifiedAnalysis?.companion_messages_count || 0} entries</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dominant Emotional State */}
               <div className="space-y-1.5">
-                <span className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
-                  <Tag className="w-3.5 h-3.5 text-[#1976D2]" />
-                  <span>spaCy NLP Entities:</span>
+                <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                  <span>Dominant Emotional State:</span>
                 </span>
-                <div className="flex flex-wrap gap-1">
-                  {(analysisResult.extracted_keywords || []).map((tag: string, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 rounded bg-[#E3F2FD] border border-[#bbdefb] text-[#1976D2] font-semibold text-[10px]">
-                      #{tag}
+                <div className="flex flex-wrap gap-1.5">
+                  {(unifiedAnalysis?.dominant_emotions || ['Calmness / Equilibrium']).map((emotion, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2.5 py-1 rounded-xl bg-[#E8F5E9] border border-[#d8e8dc] text-[#1B4332] font-bold text-xs flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#2D6A4F]" />
+                      <span>{emotion}</span>
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#F3E5F5] border border-[#e1bee7] text-xs">
-                <div className="flex items-center gap-1 text-[#7B1FA2] font-bold mb-1">
+              {/* Multiple Emotional Dimensions (1–10 Scale) */}
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-bold text-slate-700">Emotional Dimension Scores (1–10 Scale):</span>
+                
+                {unifiedAnalysis?.dimensions && (
+                  <div className="space-y-1.5">
+                    {/* Anxiety / Stress */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Anxiety / Stress</span>
+                        <span className="font-bold text-slate-800">{unifiedAnalysis.dimensions.anxiety_stress} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-rose-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.anxiety_stress * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sadness / Grief */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Sadness / Grief</span>
+                        <span className="font-bold text-slate-800">{unifiedAnalysis.dimensions.sadness_grief} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-purple-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.sadness_grief * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Anger / Frustration */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Anger / Frustration</span>
+                        <span className="font-bold text-slate-800">{unifiedAnalysis.dimensions.anger_frustration} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-orange-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.anger_frustration * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fear / Vulnerability */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Fear / Vulnerability</span>
+                        <span className="font-bold text-slate-800">{unifiedAnalysis.dimensions.fear_vulnerability} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.fear_vulnerability * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Positive Emotion / Vitality */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Positive Emotion / Joy</span>
+                        <span className="font-bold text-emerald-700">{unifiedAnalysis.dimensions.positive_emotion} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.positive_emotion * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Emotional Stability */}
+                    <div className="space-y-0.5">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-600 font-medium">Emotional Stability</span>
+                        <span className="font-bold text-teal-700">{unifiedAnalysis.dimensions.emotional_stability} / 10</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className="bg-teal-500 h-1.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${unifiedAnalysis.dimensions.emotional_stability * 10}%` }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Key Indicators */}
+              {unifiedAnalysis?.key_indicators && unifiedAnalysis.key_indicators.length > 0 && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    Key Emotional Indicators:
+                  </span>
+                  <ul className="space-y-1">
+                    {unifiedAnalysis.key_indicators.map((ind, idx) => (
+                      <li key={idx} className="text-[11px] text-slate-700 flex items-start gap-1.5 leading-snug">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F] mt-1 shrink-0" />
+                        <span>{ind}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Empathetic Summary */}
+              <div className="p-3 rounded-xl bg-[#F3E5F5] border border-[#e1bee7] text-xs space-y-1">
+                <div className="flex items-center gap-1 text-[#7B1FA2] font-bold">
                   <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
                   <span>Empathetic Guidance</span>
                 </div>
                 <p className="text-slate-700 text-[11px] leading-relaxed">
-                  {analysisResult.empathetic_insight}
+                  {unifiedAnalysis?.summary || analysisResult.empathetic_insight}
                 </p>
+              </div>
+
+              {/* Immediate Safety / Crisis Support Banner if Elevated Distress */}
+              {unifiedAnalysis && unifiedAnalysis.overall_score >= 8.0 && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1">
+                  <div className="flex items-center gap-1 font-bold">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>24/7 Crisis Support Resources</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-rose-700">
+                    If you are experiencing severe emotional pain or crisis, compassionate help is available right now:
+                    Call or text <strong>988</strong> (USA) or <strong>1800-599-0019</strong> (KIRAN India). You are not alone.
+                  </p>
+                </div>
+              )}
+
+              {/* Detailed Emotional Spectrum Breakdown Accordion */}
+              <div className="pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowDetailedBreakdown(!showDetailedBreakdown)}
+                  className="w-full flex items-center justify-between py-1.5 text-xs text-[#2D6A4F] font-bold hover:text-[#1B4332] cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" />
+                    <span>Detailed Emotional Spectrum Breakdown</span>
+                  </span>
+                  {showDetailedBreakdown ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {showDetailedBreakdown && (
+                  <div className="space-y-3 pt-3 animate-fadeIn">
+                    <div className="space-y-1.5">
+                      {Object.entries(analysisResult.emotions_breakdown || {}).map(([emotion, score]) => (
+                        <div key={emotion} className="space-y-0.5">
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-slate-600 font-medium">{emotion}</span>
+                            <span className="text-[#1B4332] font-bold">{Number(score)}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="bg-[#2D6A4F] h-1.5 rounded-full transition-all duration-500" 
+                              style={{ width: `${Math.min(100, Math.max(0, Number(score)))}%` }} 
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-[10px] space-y-1">
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span className="flex items-center gap-1 font-medium text-slate-700">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#2D6A4F]" />
+                          Privacy Protection:
+                        </span>
+                        {analysisResult.pii_protected && (
+                          <span className="text-[9px] bg-emerald-100 text-[#1B4332] px-2 py-0.5 rounded font-bold border border-emerald-200">
+                            Protected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-slate-600 font-mono italic truncate">
+                        "{analysisResult.scrubbed_text}"
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1">
+                      {(analysisResult.extracted_keywords || []).map((tag: string, idx: number) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-[#E3F2FD] border border-[#bbdefb] text-[#1976D2] font-semibold text-[10px]">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -550,23 +1061,19 @@ export const AIModulesSection: React.FC = () => {
         </div>
       )}
 
-      {/* Module Content 2: Gemini AI Companion */}
+      {/* Module Content 2: Empathetic AI Companion */}
       {activeModuleTab === 'companion' && (
         <div className="space-y-4 animate-fadeIn">
           
           <div className="flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center gap-2 text-[#7B1FA2] font-bold">
               <MessageSquareHeart className="w-4 h-4 text-[#7B1FA2]" />
-              <span>Gemini Empathetic Dialogue & PostgreSQL Vector Memory</span>
+              <span>MindMitra Empathetic Companion</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#E3F2FD] text-[#1976D2] border border-[#bbdefb] rounded-full flex items-center gap-1">
-                <Database className="w-3 h-3" />
-                pgvector (k=3)
-              </span>
               <span className="px-2.5 py-0.5 text-[10px] uppercase font-bold bg-[#E8F5E9] text-[#2D6A4F] border border-[#d8e8dc] rounded-full flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" />
-                AES-256
+                Private & Confidential
               </span>
             </div>
           </div>
@@ -576,9 +1083,14 @@ export const AIModulesSection: React.FC = () => {
             <div className="px-5 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 text-[#1B4332] font-bold">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F] animate-pulse" />
-                <span>Mindmitra AI Assistant (Gemini LLM)</span>
+                <span>Mindmitra AI Companion</span>
               </div>
-              <span className="text-slate-500 text-[11px]">Safe Reflective Space</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full font-medium">
+                  Current Well-being Score: <strong className={concernInfo.textColor}>{unifiedAnalysis?.overall_score?.toFixed(1) || '3.5'}/10</strong>
+                </span>
+                <span className="text-slate-500 text-[11px] hidden sm:inline">Safe Reflective Space</span>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -627,7 +1139,10 @@ export const AIModulesSection: React.FC = () => {
 
                     <div className={`text-[10px] text-slate-400 flex items-center gap-1.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <span>{msg.timestamp}</span>
-                      {msg.scrubbed && <span className="text-[#2D6A4F] font-semibold">• Scrubbed</span>}
+                      {msg.sender === 'user' && (
+                        <span className="text-[#2D6A4F] font-semibold">• Saved to Reflections</span>
+                      )}
+                      {msg.scrubbed && <span className="text-[#2D6A4F] font-semibold">• Anonymized</span>}
                     </div>
                   </div>
                 </div>
@@ -640,7 +1155,7 @@ export const AIModulesSection: React.FC = () => {
                   </div>
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
-                    <span>Mindmitra AI is reflecting...</span>
+                    <span>Mindmitra is reflecting...</span>
                   </div>
                 </div>
               )}
@@ -673,7 +1188,7 @@ export const AIModulesSection: React.FC = () => {
                 type="text"
                 value={inputMsg}
                 onChange={(e) => setInputMsg(e.target.value)}
-                placeholder="Share your thoughts or ask for guidance..."
+                placeholder="Share your thoughts and reflections here..."
                 className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#f8faf8] border border-slate-200 text-slate-800 text-xs focus:outline-none focus:border-[#2D6A4F] transition-all placeholder:text-slate-400"
               />
               <button

@@ -76,7 +76,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ user, onSe
         </div>
       </div>
 
-      {/* Combined AI Modules Section (RoBERTa Emotion Classifier & Gemini AI Companion) */}
+      {/* Combined AI Sanctuary Suite (Emotion Check-in & AI Companion) */}
       <AIModulesSection />
 
       {/* Top Quick Stats Grid */}

@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, X, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-export const OneMinuteBreatherCard: React.FC = () => {
+interface OneMinuteBreatherCardProps {
+  onOpenFullMeditation?: () => void;
+}
+
+export const OneMinuteBreatherCard: React.FC<OneMinuteBreatherCardProps> = ({ onOpenFullMeditation }) => {
   const { t } = useLanguage();
 
   const [showBreatherModal, setShowBreatherModal] = useState(false);
@@ -138,6 +142,22 @@ export const OneMinuteBreatherCard: React.FC = () => {
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
+
+            {onOpenFullMeditation && (
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBreatherModal(false);
+                    setIsActive(false);
+                    onOpenFullMeditation();
+                  }}
+                  className="text-xs font-bold text-[#2D6A4F] hover:underline cursor-pointer"
+                >
+                  Explore Full Meditation & Breathing Suite →
+                </button>
+              </div>
+            )}
 
           </div>
         </div>

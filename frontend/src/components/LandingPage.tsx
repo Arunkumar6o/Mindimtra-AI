@@ -65,14 +65,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
             <BrainCircuit className="w-6 h-6 text-[#2D6A4F]" />
           </div>
           <h3 className="text-lg font-bold text-[#1B4332] group-hover:text-[#2D6A4F] transition-colors">
-            RoBERTa Emotion Engine
+            Emotion Intelligence Check-in
           </h3>
           <p className="text-xs text-[#557B69] leading-relaxed">
             Understands fine-grained emotional nuances (anxiety, grief, joy, distress) to tailor empathetic responses without judgment.
           </p>
           <div className="pt-2 flex items-center gap-2 text-[11px] text-[#2D6A4F] font-semibold">
             <Activity className="w-3.5 h-3.5" />
-            <span>Try Sentiment Classifier →</span>
+            <span>Try Emotion Check-in →</span>
           </div>
         </div>
 
@@ -85,10 +85,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenLogin }) => {
             <MessageSquareHeart className="w-6 h-6 text-[#1565C0]" />
           </div>
           <h3 className="text-lg font-bold text-[#1B4332] group-hover:text-[#1565C0] transition-colors">
-            Gemini Empathetic AI Companion
+            Empathetic AI Companion
           </h3>
           <p className="text-xs text-[#557B69] leading-relaxed">
-            Interactive, reflective conversations powered by Gemini AI, designed to foster mindfulness, grounding, and self-compassion.
+            Interactive, reflective conversations designed to foster mindfulness, grounding, and self-compassion.
           </p>
           <div className="pt-2 flex items-center gap-2 text-[11px] text-[#1565C0] font-semibold">
             <Sparkles className="w-3.5 h-3.5" />

@@ -86,7 +86,7 @@ export async function registerUserInSupabase(
     }
 
     if (!authData.user) {
-      return { user: null, error: 'Registration failed in Supabase. Please try again.' };
+      return { user: null, error: 'Registration could not be completed. Please try again.' };
     }
 
     // 2. Insert profile record in Supabase 'profiles' database table
@@ -119,7 +119,7 @@ export async function registerUserInSupabase(
       error: null
     };
   } catch (err: any) {
-    return { user: null, error: err.message || 'An unexpected error occurred during Supabase registration.' };
+    return { user: null, error: err.message || 'An unexpected error occurred during account creation.' };
   }
 }
 
@@ -187,7 +187,7 @@ export async function loginUserWithSupabase(
     }
 
     if (!authData.user) {
-      return { user: null, isDemo: false, error: 'Invalid login response from Supabase.' };
+      return { user: null, isDemo: false, error: 'Invalid login response. Please check your credentials.' };
     }
 
     const userName = authData.user.user_metadata?.full_name || cleanEmail.split('@')[0];
@@ -203,6 +203,6 @@ export async function loginUserWithSupabase(
       error: null
     };
   } catch (err: any) {
-    return { user: null, isDemo: false, error: err.message || 'Supabase login failed.' };
+    return { user: null, isDemo: false, error: err.message || 'Sign in failed. Please check your email and password.' };
   }
 }

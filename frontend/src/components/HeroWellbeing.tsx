@@ -25,8 +25,8 @@ export const HeroWellbeing: React.FC<HeroWellbeingProps> = ({ onOpenLogin }) => 
         </h1>
         
         <p className="text-base sm:text-lg text-[#557B69] max-w-2xl mx-auto leading-relaxed">
-          Mindmitra combines real-time <strong>RoBERTa emotion classification</strong>, 
-          <strong> Gemini LLM responses</strong>, and <strong>AES-256 PII protection</strong> to support your mental wellbeing journey.
+          Mindmitra combines real-time <strong>emotion intelligence</strong>, 
+          <strong> compassionate AI conversations</strong>, and <strong>bank-grade privacy protection</strong> to support your mental well-being journey.
         </p>
 
         {/* CTA Login Button */}
@@ -52,13 +52,13 @@ export const HeroWellbeing: React.FC<HeroWellbeingProps> = ({ onOpenLogin }) => 
           <div className="w-12 h-12 rounded-xl bg-[#E8F5E9] border border-[#C8E6C9] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
             <BrainCircuit className="w-6 h-6 text-[#2D6A4F]" />
           </div>
-          <h3 className="text-lg font-bold text-[#1B4332] mb-2">RoBERTa Emotion Engine</h3>
+          <h3 className="text-lg font-bold text-[#1B4332] mb-2">Emotion Intelligence</h3>
           <p className="text-xs text-[#557B69] leading-relaxed">
             Understands fine-grained emotional nuances (anxiety, grief, joy, distress) to tailor empathetic responses without judgment.
           </p>
           <div className="mt-4 flex items-center gap-2 text-[11px] text-[#2D6A4F] font-semibold">
             <Activity className="w-3.5 h-3.5" />
-            <span>PyTorch + HuggingFace Pipeline</span>
+            <span>Nuanced Emotional Understanding</span>
           </div>
         </div>
 
@@ -67,13 +67,13 @@ export const HeroWellbeing: React.FC<HeroWellbeingProps> = ({ onOpenLogin }) => 
           <div className="w-12 h-12 rounded-xl bg-[#E3F2FD] border border-[#BBDEFB] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
             <MessageSquareHeart className="w-6 h-6 text-[#1565C0]" />
           </div>
-          <h3 className="text-lg font-bold text-[#1B4332] mb-2">Gemini AI Dialogue</h3>
+          <h3 className="text-lg font-bold text-[#1B4332] mb-2">Empathetic AI Companion</h3>
           <p className="text-xs text-[#557B69] leading-relaxed">
-            Interactive, reflective conversations powered by Gemini API, designed to foster mindfulness and self-compassion.
+            Interactive, reflective conversations designed to foster mindfulness, emotional clarity, and self-compassion.
           </p>
           <div className="mt-4 flex items-center gap-2 text-[11px] text-[#1565C0] font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>PostgreSQL + pgvector Memory</span>
+            <span>Supportive & Compassionate Dialogue</span>
           </div>
         </div>
 
@@ -82,13 +82,13 @@ export const HeroWellbeing: React.FC<HeroWellbeingProps> = ({ onOpenLogin }) => 
           <div className="w-12 h-12 rounded-xl bg-[#F3E5F5] border border-[#E1BEE7] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
             <ShieldCheck className="w-6 h-6 text-[#7B1FA2]" />
           </div>
-          <h3 className="text-lg font-bold text-[#1B4332] mb-2">AES-256 & PII Defense</h3>
+          <h3 className="text-lg font-bold text-[#1B4332] mb-2">Private & Confidential</h3>
           <p className="text-xs text-[#557B69] leading-relaxed">
-            End-to-end data encryption with Microsoft Presidio PII scrubbing to ensure your personal thoughts remain 100% private.
+            End-to-end data encryption with automatic personal information protection to ensure your thoughts remain 100% private.
           </p>
           <div className="mt-4 flex items-center gap-2 text-[11px] text-[#7B1FA2] font-semibold">
             <Lock className="w-3.5 h-3.5" />
-            <span>AES-256-GCM Secure Encryption</span>
+            <span>Encrypted & Confidential Sanctuary</span>
           </div>
         </div>
 

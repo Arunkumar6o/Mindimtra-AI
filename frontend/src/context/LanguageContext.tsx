@@ -68,8 +68,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: "You're doing great!",
     small_steps: 'Small steps make big changes.',
     ai_sanctuary: 'AI Sanctuary Suite',
-    roberta_classifier: 'RoBERTa Emotion Classifier',
-    gemini_companion: 'Gemini AI Companion',
+    roberta_classifier: 'Emotion Check-in',
+    gemini_companion: 'AI Companion',
     recommended_resources: 'Recommended Resources',
     recent_activity: 'Recent Activity',
     upcoming_schedule: 'Upcoming Schedule',
@@ -126,8 +126,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'आप बहुत बढ़िया कर रहे हैं!',
     small_steps: 'छोटे कदम बड़े बदलाव लाते हैं।',
     ai_sanctuary: 'एआई अभयारण्य सूट',
-    roberta_classifier: 'रॉबर्टा भावना वर्गीकरण',
-    gemini_companion: 'जेमिनी एआई साथी',
+    roberta_classifier: 'भावना चेक-इन',
+    gemini_companion: 'एआई साथी',
     recommended_resources: 'अनुशंसित संसाधन',
     recent_activity: 'हाल की गतिविधि',
     upcoming_schedule: 'आगामी अनुसूची',
@@ -184,8 +184,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'நீங்கள் சிறப்பாகச் செய்கிறீர்கள்!',
     small_steps: 'சிறிய அடிகள் பெரிய மாற்றங்களை உருவாக்கும்.',
     ai_sanctuary: 'AI மனநலத் தொகுப்பு',
-    roberta_classifier: 'RoBERTa உணர்ச்சி வகைப்படுத்தி',
-    gemini_companion: 'ஜெமினி AI துணைவன்',
+    roberta_classifier: 'உணர்ச்சி சரிபார்ப்பு',
+    gemini_companion: 'AI துணைவன்',
     recommended_resources: 'பரிந்துரைக்கப்பட்ட வளங்கள்',
     recent_activity: 'சமீபத்திய செயல்பாடு',
     upcoming_schedule: 'வரவிருக்கும் நிகழ்வுகள்',
@@ -242,8 +242,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'మీరు చాలా బాగా చేస్తున్నారు!',
     small_steps: 'చిన్న అడుగులు పెద్ద మార్పులను తెస్తాయి.',
     ai_sanctuary: 'AI సంరక్షణ సూట్',
-    roberta_classifier: 'RoBERTa భావోద్వేగ వర్గీకరణ',
-    gemini_companion: 'జెమిని AI సహచరి',
+    roberta_classifier: 'భావోద్వేగ చెక్-ఇన్',
+    gemini_companion: 'AI సహచరి',
     recommended_resources: 'సిఫార్సు చేసిన వనరులు',
     recent_activity: 'ఇటీవలి కార్యాచరణ',
     upcoming_schedule: 'రాబోయే షెడ్యూల్',
@@ -300,8 +300,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'ನೀವು ಅದ್ಭುತವಾಗಿ ಮಾಡುತ್ತಿದ್ದೀರಿ!',
     small_steps: 'ಸಣ್ಣ ಹೆಜ್ಜೆಗಳು ದೊಡ್ಡ ಬದಲಾವಣೆಗಳನ್ನು ತರುತ್ತವೆ.',
     ai_sanctuary: 'AI ಆರೋಗ್ಯ ಸೂಟ್',
-    roberta_classifier: 'RoBERTa ಭಾವನಾತ್ಮಕ ವರ್ಗೀಕರಣ',
-    gemini_companion: 'ಜೆಮಿನಿ AI ಸಂಗಾತಿ',
+    roberta_classifier: 'ಭಾವನಾತ್ಮಕ ತಪಾಸಣೆ',
+    gemini_companion: 'AI ಸಂಗಾತಿ',
     recommended_resources: 'ಶಿಫಾರಸು ಮಾಡಿದ ಸಂಪನ್ಮೂಲಗಳು',
     recent_activity: 'ಇತ್ತೀಚಿನ ಚಟುವಟಿಕೆ',
     upcoming_schedule: 'ಮುಂಬರುವ ವೇಳಾಪಟ್ಟಿ',
@@ -358,8 +358,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'നിങ്ങൾ വളരെ മികച്ച രീതിയിൽ ചെയ്യുന്നു!',
     small_steps: 'ചെറിയ ചുവടുകൾ വലിയ മാറ്റങ്ങൾ കൊണ്ടുവരുന്നു.',
     ai_sanctuary: 'AI സങ്കേതം',
-    roberta_classifier: 'RoBERTa ഇമോഷൻ ക്ലാസിഫയർ',
-    gemini_companion: 'ജെമിനി AI കൂട്ടുകാരൻ',
+    roberta_classifier: 'വികാര പരിശോധന',
+    gemini_companion: 'AI കൂട്ടുകാരൻ',
     recommended_resources: 'ശപാർശ ചെയ്ത വിഭവങ്ങൾ',
     recent_activity: 'അടുത്തകാലത്തെ പ്രവർത്തനം',
     upcoming_schedule: 'വരാനിരിക്കുന്ന ഷെഡ്യൂൾ',
@@ -416,8 +416,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'तुम्ही खूप छान करत आहात!',
     small_steps: 'लहान पावले मोठे बदल घडवून आणतात.',
     ai_sanctuary: 'AI मानसिक आरोग्य संच',
-    roberta_classifier: 'RoBERTa भावना वर्गीकरण',
-    gemini_companion: 'जेमिनी AI साथीदार',
+    roberta_classifier: 'भावना चेक-इन',
+    gemini_companion: 'AI साथीदार',
     recommended_resources: 'शीफारस केलेली संसाधने',
     recent_activity: 'नुकतीच झालेली हालचाल',
     upcoming_schedule: 'पुढील वेळापत्रक',
@@ -474,8 +474,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'আপনি দারুণ করছেন!',
     small_steps: 'ছোট পদক্ষেপ বড় পরিবর্তন আনে।',
     ai_sanctuary: 'AI মানসিক স্বাস্থ্য সংকলন',
-    roberta_classifier: 'RoBERTa অনুভূতি ক্লাসিফায়ার',
-    gemini_companion: 'জেদিনি AI সঙ্গী',
+    roberta_classifier: 'অনুভূতি চেক-ইন',
+    gemini_companion: 'AI সঙ্গী',
     recommended_resources: 'সুপারিশকৃত সম্পদ',
     recent_activity: 'সাম্প্রতিক কার্যকলাপ',
     upcoming_schedule: 'আসন্ন সময়সূচী',
@@ -532,8 +532,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'તમે ખૂબ સરસ કરી રહ્યા છો!',
     small_steps: 'નાના પગલાં મોટા ફેરફારો લાવે છે.',
     ai_sanctuary: 'AI સંભાળ સ્યુટ',
-    roberta_classifier: 'RoBERTa લાગણી વર્ગીકરણ',
-    gemini_companion: 'જેમિની AI સાથી',
+    roberta_classifier: 'લાગણી ચેક-ઇન',
+    gemini_companion: 'AI સાથી',
     recommended_resources: 'ભલામણ કરેલ સંસાધનો',
     recent_activity: 'તાજેતરની પ્રવૃત્તિ',
     upcoming_schedule: 'આગામી શેડ્યૂલ',
@@ -590,8 +590,8 @@ export const TRANSLATIONS: TranslationsDict = {
     doing_great: 'ਤੁਸੀਂ ਬਹੁਤ ਵਧੀਆ ਕਰ ਰਹੇ ਹੋ!',
     small_steps: 'ਛੋਟੇ ਕਦਮ ਵੱਡੇ ਬਦਲਾਅ ਲਿਆਉਂਦੇ ਹਨ।',
     ai_sanctuary: 'AI ਮਾਨਸਿਕ ਸੰਭਾਲ',
-    roberta_classifier: 'RoBERTa ਭਾਵਨਾ ਵਰਗੀਕਰਨ',
-    gemini_companion: 'ਜੈਮਿਨੀ AI ਸਾਥੀ',
+    roberta_classifier: 'ਭਾਵਨਾ ਚੈੱਕ-ਇਨ',
+    gemini_companion: 'AI ਸਾਥੀ',
     recommended_resources: 'ਸਿਫ਼ਾਰਸ਼ ਕੀਤੇ ਸਰੋਤ',
     recent_activity: 'ਤਾਜ਼ਾ ਗਤੀਵਿਧੀ',
     upcoming_schedule: 'ਆਉਣ ਵਾਲਾ ਸ਼ਡਿਊਲ',
@@ -671,10 +671,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
+const defaultFallbackContext: LanguageContextType = {
+  currentLanguage: 'en',
+  setLanguage: () => {},
+  isDrawerOpen: false,
+  setIsDrawerOpen: () => {},
+  openLanguageDrawer: () => {},
+  closeLanguageDrawer: () => {},
+  t: (key: string) => TRANSLATIONS['en']?.[key] || key,
+  selectedLanguageObj: LANGUAGES[0]
+};
+
 export const useLanguage = (): LanguageContextType => {
   const context = useContext(LanguageContext);
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
-  }
-  return context;
+  return context || defaultFallbackContext;
 };

@@ -8,6 +8,7 @@ interface TopHeaderProps {
   onOpenNotifications?: () => void;
   onSearch?: (query: string) => void;
   onOpenLanguageDrawer?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -15,7 +16,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onLogout,
   onOpenNotifications,
   onSearch,
-  onOpenLanguageDrawer
+  onOpenLanguageDrawer,
+  onOpenSettings
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -121,7 +123,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
               </button>
 
               <button
-                onClick={() => setShowProfileMenu(false)}
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  if (onOpenSettings) onOpenSettings();
+                }}
                 className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-slate-600 hover:bg-slate-50 hover:text-[#2D6A4F] text-left cursor-pointer"
               >
                 <SettingsIcon className="w-3.5 h-3.5" />
