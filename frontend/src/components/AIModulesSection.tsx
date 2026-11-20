@@ -43,6 +43,8 @@ import {
   type ModelProgressInfo,
   DISPLAY_MODEL_NAME
 } from '../services/emotionModelService';
+import { sendCompanionMessage } from '../services/geminiCompanionService';
+import { getUserPreferences } from '../services/sanctuaryDbService';
 
 interface ChatMessage {
   id: string;
@@ -414,38 +416,21 @@ export const AIModulesSection: React.FC<AIModulesSectionProps> = ({ user }) => {
     let suggestedActions = [
       'Log this session in Mood Tracker',
       'Try a 2-minute Guided Breathing session',
-      'Read Resilience Quote'
+      'Read Resilience Affirmation'
     ];
     let isScrubbed = false;
 
     try {
-      const res = await fetch('/api/chat/respond', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
-      });
+      const prefs = await getUserPreferences(userId).catch(() => null);
+      const style = prefs?.communication_style || 'empathetic';
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          botText = data.response;
-          suggestedActions = data.suggested_actions || suggestedActions;
-          isScrubbed = Boolean(data.pii_protected);
-        }
-      }
-    } catch (e) {}
-
-    if (!botText) {
-      const lower = text.toLowerCase();
-      if (lower.includes('anxious') || lower.includes('overwhelm') || lower.includes('deadline')) {
-        botText = `Thank you for sharing that with me. It is completely natural to feel overwhelmed when deadlines and demands pile up. Taking a deep, gentle breath right now can give your mind the pause it deserves. What is one small task you can set aside for today to give yourself some breathing room?`;
-        suggestedActions = ['Start 4-7-8 Breathing', 'Break workload into small steps', 'Take a 5-minute breather'];
-      } else if (lower.includes('sad') || lower.includes('alone') || lower.includes('down')) {
-        botText = `I hear you, and your feelings are completely valid. Experiencing heavy days can feel draining, but you don't have to carry all of it alone. I am right here with you. What would feel most comforting to you in this exact moment?`;
-        suggestedActions = ['Listen to soothing music', 'Drink a glass of warm water', 'Rest and pause'];
-      } else {
-        botText = `Thank you for opening up to me. Hearing your thoughts helps us find steady ground together. When feelings swirl, grounding yourself in the present moment is deeply restorative. How does your body feel right now as we talk?`;
-      }
+      const companionResult = await sendCompanionMessage(text, { style });
+      botText = companionResult.replyText;
+      suggestedActions = companionResult.suggestedActions;
+      isScrubbed = companionResult.isScrubbed;
+    } catch (e) {
+      console.warn('Error fetching companion response:', e);
+      botText = `Thank you for opening up to me. Hearing your thoughts helps us find steady ground together. When feelings swirl, grounding yourself in the present moment is deeply restorative. How does your body feel right now as we talk?`;
     }
 
     const geminiMsg: ChatMessage = {
@@ -1080,10 +1065,14 @@ export const AIModulesSection: React.FC<AIModulesSectionProps> = ({ user }) => {
 
           <div className="rounded-2xl bg-[#fafcfb] border border-slate-200 overflow-hidden flex flex-col h-[480px]">
             
-            <div className="px-5 py-3 bg-white border-b border-slate-200 flex items-center justify-between text-xs">
+            <div className="px-5 py-3 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2 text-[#1B4332] font-bold">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#2D6A4F] animate-pulse" />
                 <span>Mindmitra AI Companion</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-[#E8F5E9] text-[#2D6A4F] border border-[#d8e8dc] rounded-full flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Gemini AI Active
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full font-medium">
@@ -1155,7 +1144,7 @@ export const AIModulesSection: React.FC<AIModulesSectionProps> = ({ user }) => {
                   </div>
                   <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#2D6A4F]" />
-                    <span>Mindmitra is reflecting...</span>
+                    <span>Mindmitra (Gemini AI) is reflecting...</span>
                   </div>
                 </div>
               )}

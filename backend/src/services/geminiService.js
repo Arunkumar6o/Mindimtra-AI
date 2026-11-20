@@ -1,9 +1,42 @@
 import { config } from '../config/index.js';
 
+// Candidate models in preference order for maximum compatibility with Gemini API
+const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
+
 /**
- * Call Gemini 1.5 Flash to generate an empathetic companion response
+ * Helper to call Gemini Generative Language API across candidate models
  */
-export async function generateEmpatheticResponse(sanitizedText) {
+async function callGeminiApi({ apiKey, contents, generationConfig = {} }) {
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          return { text: text.trim(), modelUsed: model };
+        }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[Gemini Service] Model ${model} returned HTTP ${res.status}: ${errText.substring(0, 200)}`);
+      }
+    } catch (e) {
+      console.warn(`[Gemini Service] Model ${model} request error:`, e.message);
+    }
+  }
+  return null;
+}
+
+/**
+ * Call Gemini to generate an empathetic companion response
+ */
+export async function generateEmpatheticResponse(sanitizedText, options = {}) {
   const geminiApiKey = config.geminiApiKey;
   let replyText = '';
   let suggestedActions = [
@@ -14,36 +47,56 @@ export async function generateEmpatheticResponse(sanitizedText) {
 
   if (geminiApiKey) {
     try {
+      const styleInstruction = options.style === 'gentle'
+        ? 'Use a gentle, soothing, soft grounding tone with calming presence.'
+        : options.style === 'direct'
+        ? 'Be clear, solution-oriented, compassionate yet structured.'
+        : options.style === 'reflective'
+        ? 'Ask gentle, thoughtful inquiry questions that help the user explore their feelings.'
+        : 'Respond with genuine empathy, warmth, and non-judgmental validation.';
+
       const prompt = `You are MindMitra, a compassionate and supportive emotional well-being AI companion.
-A user shares: "${sanitizedText}".
-Respond with genuine empathy, warmth, and non-judgmental support in 2-3 concise paragraphs.
-Do NOT clinically diagnose mental illnesses or make medical claims. Offer a gentle grounding reflection.`;
+Guidance style: ${styleInstruction}
 
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.6 }
-          })
-        }
-      );
+A user shares their personal reflection:
+"${sanitizedText}"
 
-      if (geminiRes.ok) {
-        const gData = await geminiRes.json();
-        const candidate = gData?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidate) {
-          replyText = candidate.trim();
+Instructions:
+1. Respond with genuine empathy, warmth, and non-judgmental emotional support in 2-3 concise paragraphs.
+2. Do NOT clinically diagnose mental illnesses or make medical claims. Offer a gentle grounding reflection.
+3. At the very end of your response on a new line, suggest 3 practical next steps in this format:
+SUGGESTIONS: [Short action 1 | Short action 2 | Short action 3]`;
+
+      const result = await callGeminiApi({
+        apiKey: geminiApiKey,
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.6 }
+      });
+
+      if (result?.text) {
+        let fullText = result.text;
+        
+        // Extract SUGGESTIONS if present
+        const suggestionMatch = fullText.match(/SUGGESTIONS:\s*\[([^\]]+)\]/i);
+        if (suggestionMatch && suggestionMatch[1]) {
+          const parsed = suggestionMatch[1]
+            .split('|')
+            .map(s => s.trim())
+            .filter(Boolean);
+          if (parsed.length > 0) {
+            suggestedActions = parsed;
+          }
+          fullText = fullText.replace(/SUGGESTIONS:\s*\[([^\]]+)\]/i, '').trim();
         }
+
+        replyText = fullText;
       }
     } catch (e) {
       console.warn('[Gemini Service] API call failed, using empathetic fallback:', e.message);
     }
   }
 
-  // Empathetic fallback
+  // Empathetic fallback if Gemini is offline or unreachable
   if (!replyText) {
     const lower = sanitizedText.toLowerCase();
     if (lower.includes('anxious') || lower.includes('overwhelm') || lower.includes('deadline')) {
@@ -61,7 +114,7 @@ Do NOT clinically diagnose mental illnesses or make medical claims. Offer a gent
 }
 
 /**
- * Call Gemini 1.5 Flash to compute Unified Emotional Analysis across user conversations
+ * Call Gemini to compute Unified Emotional Analysis across user conversations
  */
 export async function generateUnifiedAnalysis({ conversationContext, robertaSnapshot, previousScore }) {
   const geminiApiKey = config.geminiApiKey;
@@ -115,27 +168,17 @@ IMPORTANT SAFETY & COMPLIANCE RULES:
 Here are the user's messages:
 ${conversationContext}`;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemPrompt }] }],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.2
-          }
-        })
+    const result = await callGeminiApi({
+      apiKey: geminiApiKey,
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.2
       }
-    );
+    });
 
-    if (geminiRes.ok) {
-      const gData = await geminiRes.json();
-      const rawJsonText = gData?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (rawJsonText) {
-        return JSON.parse(rawJsonText);
-      }
+    if (result?.text) {
+      return JSON.parse(result.text);
     }
   } catch (err) {
     console.warn('[Gemini Service] Unified Analysis API call failed:', err.message);
@@ -143,4 +186,3 @@ ${conversationContext}`;
 
   return null;
 }
-

@@ -12,7 +12,8 @@ import {
   Settings, 
   HelpCircle,
   Sprout,
-  Globe
+  Globe,
+  Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -21,6 +22,7 @@ export type SidebarTab =
   | 'mood' 
   | 'self-care' 
   | 'meditation' 
+  | 'activities'
   | 'journaling' 
   | 'resources' 
   | 'community' 
@@ -42,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
     { id: 'mood', label: t('mood', 'Mood Tracking'), icon: Smile },
     { id: 'self-care', label: t('self_care', 'Self-Care'), icon: Heart },
     { id: 'meditation', label: t('meditation', 'Meditation & Breathing'), icon: Wind },
+    { id: 'activities', label: t('activities', 'Mental Activities'), icon: Sparkles },
     { id: 'journaling', label: t('journaling', 'Journaling'), icon: BookOpen },
     { id: 'resources', label: t('resources', 'Resources'), icon: Compass },
     { id: 'community', label: t('community', 'Community'), icon: Users },

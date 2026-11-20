@@ -26,6 +26,7 @@ import { AppointmentsSection } from './sections/AppointmentsSection';
 import { CommunitySection } from './sections/CommunitySection';
 import { ResourcesSection } from './sections/ResourcesSection';
 import { SettingsSection } from './sections/SettingsSection';
+import { WellnessActivitiesSection } from './sections/WellnessActivitiesSection';
 
 interface MindmitraDashboardProps {
   user: { id?: string; email: string; name: string } | null;
@@ -206,6 +207,8 @@ export const MindmitraDashboard: React.FC<MindmitraDashboardProps> = ({
             </>
           ) : activeSidebarTab === 'meditation' ? (
             <MeditationSection user={user} onNavigateHome={() => setActiveSidebarTab('dashboard')} />
+          ) : activeSidebarTab === 'activities' ? (
+            <WellnessActivitiesSection user={user} onNavigateHome={() => setActiveSidebarTab('dashboard')} />
           ) : activeSidebarTab === 'mood' ? (
             <MoodTrackingSection user={user} />
           ) : activeSidebarTab === 'self-care' ? (

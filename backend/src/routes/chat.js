@@ -11,9 +11,10 @@ const router = express.Router();
 router.post('/respond', async (req, res) => {
   try {
     const userMsg = req.body?.message || '';
+    const style = req.body?.style || 'empathetic';
     const { sanitized, wasSanitized, entities } = sanitizePII(userMsg);
 
-    const { replyText, suggestedActions } = await generateEmpatheticResponse(sanitized);
+    const { replyText, suggestedActions } = await generateEmpatheticResponse(sanitized, { style });
 
     return res.status(200).json({
       success: true,

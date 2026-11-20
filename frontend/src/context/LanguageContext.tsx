@@ -32,6 +32,7 @@ export const TRANSLATIONS: TranslationsDict = {
     mood: 'Mood Tracking',
     self_care: 'Self-Care',
     meditation: 'Meditation & Breathing',
+    activities: 'Mental Activities',
     journaling: 'Journaling',
     resources: 'Resources',
     community: 'Community',

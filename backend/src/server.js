@@ -153,9 +153,10 @@ export async function handleRequest(req, res) {
     try {
       const body = await parseJsonBody(req);
       const userMsg = body.message || '';
+      const style = body.style || 'empathetic';
       const { sanitized, wasSanitized, entities } = sanitizePII(userMsg);
 
-      const { replyText, suggestedActions } = await generateEmpatheticResponse(sanitized);
+      const { replyText, suggestedActions } = await generateEmpatheticResponse(sanitized, { style });
 
       sendJson(res, 200, {
         success: true,
