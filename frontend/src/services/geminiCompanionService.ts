@@ -8,7 +8,7 @@
  *   3. Offline/local empathetic guidance engine when offline
  */
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyC0HKW8OydXC4yF4PM1TfGOyUPVTUpG3Ww';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const CANDIDATE_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash'];
 
 export interface CompanionResponse {

@@ -1,9 +1,16 @@
 node_modules/
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 backend/.env
 frontend/.env
 *.log
 dist/
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
